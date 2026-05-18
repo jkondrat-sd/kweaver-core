@@ -1,6 +1,6 @@
--   name: "Positive_更新定时任务_仅必需参数_请求成功"
+-   name: "Positive_更新定时任务_修改执行条件_请求成功"
     url: "编辑调度任务"
-    prev_case: "Positive_更新定时任务_每日8点执行_仅必需参数_请求成功"
+    prev_case: "Positive_创建定时任务_每日8点执行_仅必需参数_请求成功"
     path_params: >-
         {
             "id": "${scheduler_id}"
@@ -11,7 +11,7 @@
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *"
         }
-    code_check: "201"
+    code_check: "204"
 
 -   name: "Positive_更新定时任务_追加执行条件_请求成功"
     url: "编辑调度任务"
@@ -24,12 +24,12 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", -86400, "d") }},
-            "end_time": {{ timestamp("ms", 86400, "d") }},
+            "start_time": {{ timestamp("ms", -86400000, "d") }},
+            "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": false,
             "strategies": ["insert","delete","update"]
         }
-    code_check: "201"
+    code_check: "204"
 
 -   name: "Negative_更新定时任务_修改任务id_请求失败"
     url: "编辑调度任务"
@@ -43,7 +43,7 @@
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *"
         }
-    code_check: "400"
+    code_check: "409"
 
 -   name: "Negative_更新定时任务_修改catalog_请求失败"
     url: "编辑调度任务"
@@ -57,7 +57,7 @@
             "catalog_id": "{{ '%s' | format(random_string(20, 10)) }}",
             "cron_expr": "00 18 * * *"
         }
-    code_check: "400"
+    code_check: "409"
 
 -   name: "Negative_更新定时任务_修改任务状态_请求失败"
     url: "编辑调度任务"
@@ -72,7 +72,7 @@
             "cron_expr": "00 18 * * *",
             "enabled": true
         }
-    code_check: "400"
+    code_check: "409"
 
 -   name: "Positive_更新定时任务_修改执行策略_请求成功"
     url: "编辑调度任务"
@@ -119,7 +119,7 @@
         }
     code_check: "204"
 
--   name: "Negative_更新定时任务_参数校验_任务id缺省_请求失败"
+-   name: "Positive_更新定时任务_参数校验_任务id缺省_请求成功"
     url: "编辑调度任务"
     path_params: >-
         {
@@ -131,9 +131,9 @@
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *"
         }
-    code_check: "400"
+    code_check: "204"
 
--   name: "Negative_更新定时任务_参数校验_任务id缺省_请求失败"
+-   name: "Positive_更新定时任务_参数校验_任务id缺省_请求成功"
     url: "编辑调度任务"
     path_params: >-
         {
@@ -144,7 +144,7 @@
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *"
         }
-    code_check: "400"
+    code_check: "204"
 
 -   name: "Negative_更新定时任务_参数校验_任务id不存在_请求失败"
     url: "编辑调度任务"
@@ -172,9 +172,9 @@
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *"
         }
-    code_check: "400"
+    code_check: "409"
 
--   name: "Negative_更新定时任务_参数校验_catalog缺省_请求失败"
+-   name: "Positive_更新定时任务_参数校验_catalog缺省_请求成功"
     url: "编辑调度任务"
     path_params: >-
         {
@@ -186,9 +186,9 @@
             "catalog_id": "",
             "cron_expr": "00 18 * * *"
         }
-    code_check: "400"
+    code_check: "204"
 
--   name: "Negative_更新定时任务_参数校验_catalog缺省_请求失败"
+-   name: "Positive_更新定时任务_参数校验_catalog缺省_请求成功"
     url: "编辑调度任务"
     path_params: >-
         {
@@ -199,7 +199,7 @@
             "id": "${scheduler_id}",
             "cron_expr": "00 18 * * *"
         }
-    code_check: "400"
+    code_check: "204"
 
 -   name: "Negative_更新定时任务_参数校验_catalog不存在_请求失败"
     url: "编辑调度任务"
@@ -213,7 +213,7 @@
             "catalog_id": "${scheduler_id}",
             "cron_expr": "00 18 * * *"
         }
-    code_check: "400"
+    code_check: "409"
 
 -   name: "Negative_更新定时任务_参数校验_cron缺省_请求失败"
     url: "编辑调度任务"
@@ -309,11 +309,11 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", -86400, "d") }},
+            "start_time": {{ timestamp("ms", -86400000, "d") }},
             "enabled": false,
             "strategies": ["insert","delete","update"]
         }
-    code_check: "201"
+    code_check: "204"
 
 -   name: "Positive_更新定时任务_参数校验_时间缺省_请求成功"
     url: "编辑调度任务"
@@ -326,11 +326,11 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "end_time": {{ timestamp("ms", 86400, "d") }},
+            "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": false,
             "strategies": ["insert","delete","update"]
         }
-    code_check: "201"
+    code_check: "204"
 
 -   name: "Negative_更新定时任务_参数校验_起始时间大于结束时间_请求失败"
     url: "编辑调度任务"
@@ -343,8 +343,8 @@
              "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", 86400, "d") }},
-            "end_time": {{ timestamp("ms", -86400, "d") }},
+            "start_time": {{ timestamp("ms", 86400000, "d") }},
+            "end_time": {{ timestamp("ms", -86400000, "d") }},
             "enabled": false,
             "strategies": ["insert","delete","update"]
         }
@@ -361,8 +361,8 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": -{{ timestamp("ms", -86400, "d") }},
-            "end_time": {{ timestamp("ms", 86400, "d") }},
+            "start_time": -{{ timestamp("ms", -86400000, "d") }},
+            "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": false,
             "strategies": ["insert","delete","update"]
         }
@@ -379,8 +379,8 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", -86400, "d") }},
-            "end_time": -{{ timestamp("ms", 86400, "d") }},
+            "start_time": {{ timestamp("ms", -86400000, "d") }},
+            "end_time": -{{ timestamp("ms", 86400000, "d") }},
             "enabled": false,
             "strategies": ["insert","delete","update"]
         }
@@ -397,8 +397,8 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": "{{ timestamp("ms", -86400, "d") }}",
-            "end_time": {{ timestamp("ms", 86400, "d") }},
+            "start_time": "{{ timestamp("ms", -86400000, "d") }}",
+            "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": false,
             "strategies": ["insert","delete","update"]
         }
@@ -415,8 +415,8 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", -86400, "d") }},
-            "end_time": "{{ timestamp("ms", 86400, "d") }}",
+            "start_time": {{ timestamp("ms", -86400000, "d") }},
+            "end_time": "{{ timestamp("ms", 86400000, "d") }}",
             "enabled": false,
             "strategies": ["insert","delete","update"]
         }
@@ -434,7 +434,7 @@
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": true,
-            "end_time": {{ timestamp("ms", 86400, "d") }},
+            "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": false,
             "strategies": ["insert","delete","update"]
         }
@@ -451,7 +451,7 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", -86400, "d") }},
+            "start_time": {{ timestamp("ms", -86400000, "d") }},
             "end_time": true,
             "enabled": false,
             "strategies": ["insert","delete","update"]
@@ -470,7 +470,7 @@
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": 1778601600.123,
-            "end_time": {{ timestamp("ms", 86400, "d") }},
+            "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": false,
             "strategies": ["insert","delete","update"]
         }
@@ -487,7 +487,7 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", -86400, "d") }},
+            "start_time": {{ timestamp("ms", -86400000, "d") }},
             "end_time": 1778688000.123,
             "enabled": false,
             "strategies": ["insert","delete","update"]
@@ -505,8 +505,8 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": [{{ timestamp("ms", -86400, "d") }}],
-            "end_time": {{ timestamp("ms", 86400, "d") }},
+            "start_time": [{{ timestamp("ms", -86400000, "d") }}],
+            "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": false,
             "strategies": ["insert","delete","update"]
         }
@@ -523,8 +523,8 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", -86400, "d") }},
-            "end_time": [{{ timestamp("ms", 86400, "d") }}],
+            "start_time": {{ timestamp("ms", -86400000, "d") }},
+            "end_time": [{{ timestamp("ms", 86400000, "d") }}],
             "enabled": false,
             "strategies": ["insert","delete","update"]
         }
@@ -541,8 +541,8 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", -86400, "d") }},
-            "end_time": {{ timestamp("ms", 86400, "d") }},
+            "start_time": {{ timestamp("ms", -86400000, "d") }},
+            "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": "true",
             "strategies": ["insert","delete","update"]
         }
@@ -559,8 +559,8 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", -86400, "d") }},
-            "end_time": {{ timestamp("ms", 86400, "d") }},
+            "start_time": {{ timestamp("ms", -86400000, "d") }},
+            "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": 0,
             "strategies": ["insert","delete","update"]
         }
@@ -577,8 +577,8 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", -86400, "d") }},
-            "end_time": {{ timestamp("ms", 86400, "d") }},
+            "start_time": {{ timestamp("ms", -86400000, "d") }},
+            "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": [true],
             "strategies": ["insert","delete","update"]
         }
@@ -595,8 +595,8 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", -86400, "d") }},
-            "end_time": {{ timestamp("ms", 86400, "d") }},
+            "start_time": {{ timestamp("ms", -86400000, "d") }},
+            "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": false,
             "strategies": ["undefined"]
         }
@@ -613,8 +613,8 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", -86400, "d") }},
-            "end_time": {{ timestamp("ms", 86400, "d") }},
+            "start_time": {{ timestamp("ms", -86400000, "d") }},
+            "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": false,
             "strategies": ["undefined", "update"]
         }
@@ -631,9 +631,9 @@
             "id": "${scheduler_id}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
-            "start_time": {{ timestamp("ms", -86400, "d") }},
-            "end_time": {{ timestamp("ms", 86400, "d") }},
+            "start_time": {{ timestamp("ms", -86400000, "d") }},
+            "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": false,
             "strategies": ["insert","insert"]
         }
-    code_check: "201"
+    code_check: "204"

@@ -205,8 +205,8 @@ cases:
             {
                 "catalog_id": "${catalog_id}",
                 "cron_expr": "00 08 * * *",
-                "start_time": {{ timestamp("ms", -86400, "d") }},
-                "end_time": {{ timestamp("ms", 86400, "d") }},
+                "start_time": {{ timestamp("ms", -86400000, "d") }},
+                "end_time": {{ timestamp("ms", 86400000, "d") }},
                 "enabled": true,
                 "strategies": ["insert","delete","update"]
             }
@@ -413,4 +413,4 @@ cases:
                 "catalog_id": "${catalog_id}",
                 "cron_expr": "00 18 * * *"
             }
-        code_check: "400"
+        code_check: "404"
