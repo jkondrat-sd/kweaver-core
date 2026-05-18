@@ -349,7 +349,6 @@ cases:
             }
         body_params: >-
             {
-                "id": "${scheduler_id}",
                 "catalog_id": "${catalog_id}",
                 "cron_expr": "00 18 * * *"
             }
@@ -409,7 +408,6 @@ cases:
             }
         body_params: >-
             {
-                "id": "${scheduler_id}",
                 "catalog_id": "${catalog_id}",
                 "cron_expr": "00 18 * * *"
             }
