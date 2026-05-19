@@ -916,8 +916,15 @@ resolve_contextloader_ids() {
 
     # Fast path: all four IDs provided via env (useful when the toolbox is a
     # platform-internal box not visible in `toolbox list`).
-    if [ -n "${CONTEXTLOADER_BOX_ID:-}" ] &&        [ -n "${SEARCH_SCHEMA_TOOL_ID:-}" ] &&        [ -n "${QUERY_OBJECT_INSTANCE_TOOL_ID:-}" ] &&        [ -n "${SUBGRAPH_TOOL_ID:-}" ]; then
-        printf '%s\t%s\t%s\t%s\n'             "$CONTEXTLOADER_BOX_ID"             "$SEARCH_SCHEMA_TOOL_ID"             "$QUERY_OBJECT_INSTANCE_TOOL_ID"             "$SUBGRAPH_TOOL_ID"
+    if [ -n "${CONTEXTLOADER_BOX_ID:-}" ] && \
+       [ -n "${SEARCH_SCHEMA_TOOL_ID:-}" ] && \
+       [ -n "${QUERY_OBJECT_INSTANCE_TOOL_ID:-}" ] && \
+       [ -n "${SUBGRAPH_TOOL_ID:-}" ]; then
+        printf '%s\t%s\t%s\t%s\n' \
+            "$CONTEXTLOADER_BOX_ID" \
+            "$SEARCH_SCHEMA_TOOL_ID" \
+            "$QUERY_OBJECT_INSTANCE_TOOL_ID" \
+            "$SUBGRAPH_TOOL_ID"
         return 0
     fi
 
