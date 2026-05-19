@@ -162,6 +162,20 @@ func (mr *MockCatalogServiceMockRecorder) ListCatalogSrcs(ctx, params any) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCatalogSrcs", reflect.TypeOf((*MockCatalogService)(nil).ListCatalogSrcs), ctx, params)
 }
 
+// SetEnabled mocks base method.
+func (m *MockCatalogService) SetEnabled(ctx context.Context, catalog *interfaces.Catalog, enabled bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetEnabled", ctx, catalog, enabled)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetEnabled indicates an expected call of SetEnabled.
+func (mr *MockCatalogServiceMockRecorder) SetEnabled(ctx, catalog, enabled any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEnabled", reflect.TypeOf((*MockCatalogService)(nil).SetEnabled), ctx, catalog, enabled)
+}
+
 // TestConnection mocks base method.
 func (m *MockCatalogService) TestConnection(ctx context.Context, catalog *interfaces.Catalog) (*interfaces.CatalogHealthCheckStatus, error) {
 	m.ctrl.T.Helper()
@@ -178,17 +192,17 @@ func (mr *MockCatalogServiceMockRecorder) TestConnection(ctx, catalog any) *gomo
 }
 
 // Update mocks base method.
-func (m *MockCatalogService) Update(ctx context.Context, id string, req *interfaces.CatalogRequest) error {
+func (m *MockCatalogService) Update(ctx context.Context, catalog *interfaces.Catalog, req *interfaces.CatalogRequest) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update", ctx, id, req)
+	ret := m.ctrl.Call(m, "Update", ctx, catalog, req)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Update indicates an expected call of Update.
-func (mr *MockCatalogServiceMockRecorder) Update(ctx, id, req any) *gomock.Call {
+func (mr *MockCatalogServiceMockRecorder) Update(ctx, catalog, req any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockCatalogService)(nil).Update), ctx, id, req)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockCatalogService)(nil).Update), ctx, catalog, req)
 }
 
 // UpdateMetadata mocks base method.

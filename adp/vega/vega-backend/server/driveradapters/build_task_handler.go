@@ -15,48 +15,37 @@ import (
 	"github.com/kweaver-ai/kweaver-go-lib/audit"
 	"github.com/kweaver-ai/kweaver-go-lib/hydra"
 	"github.com/kweaver-ai/kweaver-go-lib/logger"
+	"github.com/kweaver-ai/kweaver-go-lib/otel/otellog"
 	"github.com/kweaver-ai/kweaver-go-lib/otel/oteltrace"
 	"github.com/kweaver-ai/kweaver-go-lib/rest"
-	"go.opentelemetry.io/otel/trace"
 
+	"vega-backend/common"
 	"vega-backend/common/visitor"
 	verrors "vega-backend/errors"
 	"vega-backend/interfaces"
 )
 
-// buildTaskListQuery captures filter + pagination from query string.
-type buildTaskListQuery struct {
-	interfaces.PaginationQueryParams
-	ResourceID string `form:"resource_id"`
-	CatalogID  string `form:"catalog_id"`
-	Status     string `form:"status"`
-	Mode       string `form:"mode"`
-}
-
 // =========================== POST /build-tasks ===========================
 
 // CreateBuildTaskByEx handles POST /api/vega-backend/v1/build-tasks (External).
 func (r *restHandler) CreateBuildTaskByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.createBuildTask(c, ctx, span, visitor)
+	r.createBuildTask(c, visitor)
 }
 
 // CreateBuildTaskByIn handles POST /api/vega-backend/in/v1/build-tasks (Internal).
 func (r *restHandler) CreateBuildTaskByIn(c *gin.Context) {
+	visitor := visitor.GenerateVisitor(c)
+	r.createBuildTask(c, visitor)
+}
+
+func (r *restHandler) createBuildTask(c *gin.Context, visitor hydra.Visitor) {
 	ctx, span := oteltrace.StartServerSpan(c)
 	defer span.End()
 
-	visitor := visitor.GenerateVisitor(c)
-	r.createBuildTask(c, ctx, span, visitor)
-}
-
-func (r *restHandler) createBuildTask(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -141,25 +130,22 @@ func (r *restHandler) createBuildTask(c *gin.Context, ctx context.Context, span 
 // =========================== GET /build-tasks/:id ===========================
 
 func (r *restHandler) GetBuildTaskByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.getBuildTask(c, ctx, span, visitor)
+	r.getBuildTask(c, visitor)
 }
 
 func (r *restHandler) GetBuildTaskByIn(c *gin.Context) {
+	visitor := visitor.GenerateVisitor(c)
+	r.getBuildTask(c, visitor)
+}
+
+func (r *restHandler) getBuildTask(c *gin.Context, visitor hydra.Visitor) {
 	ctx, span := oteltrace.StartServerSpan(c)
 	defer span.End()
 
-	visitor := visitor.GenerateVisitor(c)
-	r.getBuildTask(c, ctx, span, visitor)
-}
-
-func (r *restHandler) getBuildTask(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -183,25 +169,22 @@ func (r *restHandler) getBuildTask(c *gin.Context, ctx context.Context, span tra
 // =========================== GET /build-tasks ===========================
 
 func (r *restHandler) ListBuildTasksByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.listBuildTasks(c, ctx, span, visitor)
+	r.listBuildTasks(c, visitor)
 }
 
 func (r *restHandler) ListBuildTasksByIn(c *gin.Context) {
+	visitor := visitor.GenerateVisitor(c)
+	r.listBuildTasks(c, visitor)
+}
+
+func (r *restHandler) listBuildTasks(c *gin.Context, visitor hydra.Visitor) {
 	ctx, span := oteltrace.StartServerSpan(c)
 	defer span.End()
 
-	visitor := visitor.GenerateVisitor(c)
-	r.listBuildTasks(c, ctx, span, visitor)
-}
-
-func (r *restHandler) listBuildTasks(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -209,46 +192,37 @@ func (r *restHandler) listBuildTasks(c *gin.Context, ctx context.Context, span t
 	ctx = context.WithValue(ctx, interfaces.ACCOUNT_INFO_KEY, accountInfo)
 	oteltrace.AddHttpAttrs4API(span, oteltrace.GetAttrsByGinCtx(c))
 
-	var q buildTaskListQuery
-	if err := c.ShouldBindQuery(&q); err != nil {
-		httpErr := rest.NewHTTPError(ctx, http.StatusBadRequest, verrors.VegaBackend_InvalidParameter_RequestBody).
-			WithErrorDetails(err.Error())
-		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
-		rest.ReplyError(c, httpErr)
-		return
-	}
-	if q.Limit == 0 {
-		q.Limit = 20
-	}
-	if q.Sort == "" {
-		q.Sort = "update_time"
-	}
-	if q.Direction == "" {
-		q.Direction = interfaces.DESC_DIRECTION
-	}
+	offset := common.GetQueryOrDefault(c, "offset", interfaces.DEFAULT_OFFSET)
+	limit := common.GetQueryOrDefault(c, "limit", interfaces.DEFAULT_LIMIT)
+	sort := common.GetQueryOrDefault(c, "sort", "update_time")
+	direction := common.GetQueryOrDefault(c, "direction", interfaces.DESC_DIRECTION)
 
-	if q.Status != "" && !isValidBuildTaskStatus(q.Status) {
-		httpErr := rest.NewHTTPError(ctx, http.StatusBadRequest, verrors.VegaBackend_BuildTask_InvalidStatus).
-			WithErrorDetails(fmt.Sprintf("invalid status: %s", q.Status))
-		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
-		rest.ReplyError(c, httpErr)
-		return
-	}
-	if q.Mode != "" && !isValidBuildTaskMode(q.Mode) {
-		httpErr := rest.NewHTTPError(ctx, http.StatusBadRequest, verrors.VegaBackend_BuildTask_InvalidParameter_Mode).
-			WithErrorDetails(fmt.Sprintf("invalid mode: %s", q.Mode))
+	pageParam, err := validatePaginationQueryParams(ctx,
+		offset, limit, sort, direction, interfaces.BUILD_TASK_SORT)
+	if err != nil {
+		httpErr := err.(*rest.HTTPError)
+		otellog.LogError(ctx, fmt.Sprintf("%s. %v", httpErr.BaseError.Description,
+			httpErr.BaseError.ErrorDetails), nil)
 		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
 		rest.ReplyError(c, httpErr)
 		return
 	}
 
 	params := interfaces.BuildTasksQueryParams{
-		PaginationQueryParams: q.PaginationQueryParams,
-		ResourceID:            q.ResourceID,
-		CatalogID:             q.CatalogID,
-		Status:                q.Status,
-		Mode:                  q.Mode,
+		PaginationQueryParams: pageParam,
+		ResourceID:            c.Query("resource_id"),
+		CatalogID:             c.Query("catalog_id"),
+		Status:                c.Query("status"),
+		Mode:                  c.Query("mode"),
 	}
+
+	if err := ValidateBuildTaskQueryParams(ctx, params); err != nil {
+		httpErr := err.(*rest.HTTPError)
+		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
+		rest.ReplyError(c, httpErr)
+		return
+	}
+
 	tasks, total, err := r.bts.ListBuildTasks(ctx, params)
 	if err != nil {
 		httpErr := err.(*rest.HTTPError)
@@ -268,25 +242,22 @@ func (r *restHandler) listBuildTasks(c *gin.Context, ctx context.Context, span t
 // DeleteBuildTasksByEx handles DELETE /build-tasks/:ids (External).
 // `ids` is a comma-separated list. Optional query: ?ignore_missing=true
 func (r *restHandler) DeleteBuildTasksByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.deleteBuildTasks(c, ctx, span, visitor)
+	r.deleteBuildTasks(c, visitor)
 }
 
 func (r *restHandler) DeleteBuildTasksByIn(c *gin.Context) {
+	visitor := visitor.GenerateVisitor(c)
+	r.deleteBuildTasks(c, visitor)
+}
+
+func (r *restHandler) deleteBuildTasks(c *gin.Context, visitor hydra.Visitor) {
 	ctx, span := oteltrace.StartServerSpan(c)
 	defer span.End()
 
-	visitor := visitor.GenerateVisitor(c)
-	r.deleteBuildTasks(c, ctx, span, visitor)
-}
-
-func (r *restHandler) deleteBuildTasks(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -331,25 +302,22 @@ func (r *restHandler) deleteBuildTasks(c *gin.Context, ctx context.Context, span
 // =========================== POST /build-tasks/:id/start ===========================
 
 func (r *restHandler) StartBuildTaskByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.startBuildTask(c, ctx, span, visitor)
+	r.startBuildTask(c, visitor)
 }
 
 func (r *restHandler) StartBuildTaskByIn(c *gin.Context) {
+	visitor := visitor.GenerateVisitor(c)
+	r.startBuildTask(c, visitor)
+}
+
+func (r *restHandler) startBuildTask(c *gin.Context, visitor hydra.Visitor) {
 	ctx, span := oteltrace.StartServerSpan(c)
 	defer span.End()
 
-	visitor := visitor.GenerateVisitor(c)
-	r.startBuildTask(c, ctx, span, visitor)
-}
-
-func (r *restHandler) startBuildTask(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -362,8 +330,7 @@ func (r *restHandler) startBuildTask(c *gin.Context, ctx context.Context, span t
 	// body is optional; bind errors are tolerated
 	_ = c.ShouldBindJSON(&req)
 
-	buildTask, err := r.bts.StartBuildTask(ctx, taskID, req.ExecuteType)
-	if err != nil {
+	if err := r.bts.StartBuildTask(ctx, taskID, req.ExecuteType); err != nil {
 		httpErr := err.(*rest.HTTPError)
 		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
 		rest.ReplyError(c, httpErr)
@@ -373,32 +340,29 @@ func (r *restHandler) startBuildTask(c *gin.Context, ctx context.Context, span t
 	audit.NewInfoLog(audit.OPERATION, "start", audit.TransforOperator(visitor),
 		interfaces.GenerateResourceAuditObject(taskID, ""), "")
 
-	oteltrace.AddHttpAttrs4Ok(span, http.StatusOK)
-	rest.ReplyOK(c, http.StatusOK, buildTask)
+	oteltrace.AddHttpAttrs4Ok(span, http.StatusAccepted)
+	rest.ReplyOK(c, http.StatusAccepted, nil)
 }
 
 // =========================== POST /build-tasks/:id/stop ===========================
 
 func (r *restHandler) StopBuildTaskByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.stopBuildTask(c, ctx, span, visitor)
+	r.stopBuildTask(c, visitor)
 }
 
 func (r *restHandler) StopBuildTaskByIn(c *gin.Context) {
+	visitor := visitor.GenerateVisitor(c)
+	r.stopBuildTask(c, visitor)
+}
+
+func (r *restHandler) stopBuildTask(c *gin.Context, visitor hydra.Visitor) {
 	ctx, span := oteltrace.StartServerSpan(c)
 	defer span.End()
 
-	visitor := visitor.GenerateVisitor(c)
-	r.stopBuildTask(c, ctx, span, visitor)
-}
-
-func (r *restHandler) stopBuildTask(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -407,8 +371,7 @@ func (r *restHandler) stopBuildTask(c *gin.Context, ctx context.Context, span tr
 	oteltrace.AddHttpAttrs4API(span, oteltrace.GetAttrsByGinCtx(c))
 
 	taskID := c.Param("id")
-	buildTask, err := r.bts.StopBuildTask(ctx, taskID)
-	if err != nil {
+	if err := r.bts.StopBuildTask(ctx, taskID); err != nil {
 		httpErr := err.(*rest.HTTPError)
 		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
 		rest.ReplyError(c, httpErr)
@@ -418,30 +381,8 @@ func (r *restHandler) stopBuildTask(c *gin.Context, ctx context.Context, span tr
 	audit.NewInfoLog(audit.OPERATION, "stop", audit.TransforOperator(visitor),
 		interfaces.GenerateResourceAuditObject(taskID, ""), "")
 
-	oteltrace.AddHttpAttrs4Ok(span, http.StatusOK)
-	rest.ReplyOK(c, http.StatusOK, buildTask)
+	oteltrace.AddHttpAttrs4Ok(span, http.StatusAccepted)
+	rest.ReplyOK(c, http.StatusAccepted, nil)
 }
 
 // =========================== helpers ===========================
-
-func isValidBuildTaskStatus(s string) bool {
-	switch s {
-	case interfaces.BuildTaskStatusInit,
-		interfaces.BuildTaskStatusRunning,
-		interfaces.BuildTaskStatusStopping,
-		interfaces.BuildTaskStatusStopped,
-		interfaces.BuildTaskStatusCompleted,
-		interfaces.BuildTaskStatusFailed:
-		return true
-	}
-	return false
-}
-
-func isValidBuildTaskMode(m string) bool {
-	switch m {
-	case interfaces.BuildTaskModeStreaming,
-		interfaces.BuildTaskModeBatch:
-		return true
-	}
-	return false
-}

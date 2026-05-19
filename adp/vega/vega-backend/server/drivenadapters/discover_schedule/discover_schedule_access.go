@@ -66,6 +66,61 @@ type discoverScheduleAccess struct {
 	db         *sql.DB
 }
 
+type discoverScheduleScanner interface {
+	Scan(dest ...any) error
+}
+
+func discoverScheduleColumns() []string {
+	return []string{
+		"f_id",
+		"f_name",
+		"f_catalog_id",
+		"f_cron_expr",
+		"f_start_time",
+		"f_end_time",
+		"f_enabled",
+		"f_strategies",
+		"f_last_run",
+		"f_next_run",
+		"f_creator",
+		"f_creator_type",
+		"f_create_time",
+		"f_updater",
+		"f_updater_type",
+		"f_update_time",
+	}
+}
+
+func scanDiscoverSchedule(scanner discoverScheduleScanner) (*interfaces.DiscoverSchedule, error) {
+	schedule := &interfaces.DiscoverSchedule{}
+	var strategiesStr string
+
+	err := scanner.Scan(
+		&schedule.ID,
+		&schedule.Name,
+		&schedule.CatalogID,
+		&schedule.CronExpr,
+		&schedule.StartTime,
+		&schedule.EndTime,
+		&schedule.Enabled,
+		&strategiesStr,
+		&schedule.LastRun,
+		&schedule.NextRun,
+		&schedule.Creator.ID,
+		&schedule.Creator.Type,
+		&schedule.CreateTime,
+		&schedule.Updater.ID,
+		&schedule.Updater.Type,
+		&schedule.UpdateTime,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	schedule.Strategies = stringToStrategies(strategiesStr)
+	return schedule, nil
+}
+
 // NewDiscoverScheduleAccess creates a new DiscoverScheduleAccess.
 func NewDiscoverScheduleAccess(appSetting *common.AppSetting) interfaces.DiscoverScheduleAccess {
 	dsAccessOnce.Do(func() {
@@ -179,6 +234,7 @@ func (dsa *discoverScheduleAccess) Create(ctx context.Context, schedule *interfa
 	sqlStr, vals, err := sq.Insert(DISCOVER_SCHEDULE_TABLE_NAME).
 		Columns(
 			"f_id",
+			"f_name",
 			"f_catalog_id",
 			"f_cron_expr",
 			"f_start_time",
@@ -193,6 +249,7 @@ func (dsa *discoverScheduleAccess) Create(ctx context.Context, schedule *interfa
 		).
 		Values(
 			schedule.ID,
+			schedule.Name,
 			schedule.CatalogID,
 			schedule.CronExpr,
 			schedule.StartTime,
@@ -232,23 +289,8 @@ func (dsa *discoverScheduleAccess) GetByID(ctx context.Context, id string) (*int
 	span.SetAttributes(attr.Key("schedule_id").String(id))
 
 	// Build select SQL
-	sqlStr, vals, err := sq.Select(
-		"f_id",
-		"f_catalog_id",
-		"f_cron_expr",
-		"f_start_time",
-		"f_end_time",
-		"f_enabled",
-		"f_strategies",
-		"f_last_run",
-		"f_next_run",
-		"f_creator",
-		"f_creator_type",
-		"f_create_time",
-		"f_updater",
-		"f_updater_type",
-		"f_update_time",
-	).From(DISCOVER_SCHEDULE_TABLE_NAME).
+	sqlStr, vals, err := sq.Select(discoverScheduleColumns()...).
+		From(DISCOVER_SCHEDULE_TABLE_NAME).
 		Where(sq.Eq{"f_id": id}).
 		ToSql()
 	if err != nil {
@@ -257,28 +299,9 @@ func (dsa *discoverScheduleAccess) GetByID(ctx context.Context, id string) (*int
 		return nil, err
 	}
 
-	schedule := &interfaces.DiscoverSchedule{}
-	var strategiesStr string
-
 	// Execute query
 	row := dsa.db.QueryRowContext(ctx, sqlStr, vals...)
-	err = row.Scan(
-		&schedule.ID,
-		&schedule.CatalogID,
-		&schedule.CronExpr,
-		&schedule.StartTime,
-		&schedule.EndTime,
-		&schedule.Enabled,
-		&strategiesStr,
-		&schedule.LastRun,
-		&schedule.NextRun,
-		&schedule.Creator.ID,
-		&schedule.Creator.Type,
-		&schedule.CreateTime,
-		&schedule.Updater.ID,
-		&schedule.Updater.Type,
-		&schedule.UpdateTime,
-	)
+	schedule, err := scanDiscoverSchedule(row)
 	if err == sql.ErrNoRows {
 		span.SetStatus(codes.Ok, "")
 		return nil, nil
@@ -288,9 +311,6 @@ func (dsa *discoverScheduleAccess) GetByID(ctx context.Context, id string) (*int
 		span.SetStatus(codes.Error, "Scan failed")
 		return nil, err
 	}
-
-	// Parse strategies string to array
-	schedule.Strategies = stringToStrategies(strategiesStr)
 
 	span.SetStatus(codes.Ok, "")
 	return schedule, nil
@@ -302,25 +322,14 @@ func (dsa *discoverScheduleAccess) List(ctx context.Context, params interfaces.D
 	defer span.End()
 
 	// Build select query
-	builder := sq.Select(
-		"f_id",
-		"f_catalog_id",
-		"f_cron_expr",
-		"f_start_time",
-		"f_end_time",
-		"f_enabled",
-		"f_strategies",
-		"f_last_run",
-		"f_next_run",
-		"f_creator",
-		"f_creator_type",
-		"f_create_time",
-		"f_updater",
-		"f_updater_type",
-		"f_update_time",
-	).From(DISCOVER_SCHEDULE_TABLE_NAME)
+	builder := sq.Select(discoverScheduleColumns()...).
+		From(DISCOVER_SCHEDULE_TABLE_NAME)
 
 	// Apply filters
+	if params.Name != "" {
+		name := "%" + common.EscapeLikePattern(params.Name) + "%"
+		builder = builder.Where(sq.Like{"f_name": name})
+	}
 	if params.CatalogID != "" {
 		builder = builder.Where(sq.Eq{"f_catalog_id": params.CatalogID})
 	}
@@ -330,6 +339,10 @@ func (dsa *discoverScheduleAccess) List(ctx context.Context, params interfaces.D
 
 	// Get total count
 	countBuilder := sq.Select("COUNT(*)").From(DISCOVER_SCHEDULE_TABLE_NAME)
+	if params.Name != "" {
+		name := "%" + common.EscapeLikePattern(params.Name) + "%"
+		countBuilder = countBuilder.Where(sq.Like{"f_name": name})
+	}
 	if params.CatalogID != "" {
 		countBuilder = countBuilder.Where(sq.Eq{"f_catalog_id": params.CatalogID})
 	}
@@ -353,7 +366,11 @@ func (dsa *discoverScheduleAccess) List(ctx context.Context, params interfaces.D
 	}
 
 	// Apply ordering and pagination
-	builder = builder.OrderBy("f_create_time DESC")
+	if params.Sort != "" {
+		builder = builder.OrderBy(fmt.Sprintf("%s %s", params.Sort, params.Direction))
+	} else {
+		builder = builder.OrderBy("f_update_time DESC")
+	}
 	// Pagination
 	if params.Limit > 0 {
 		builder = builder.Limit(uint64(params.Limit)).Offset(uint64(params.Offset))
@@ -377,32 +394,12 @@ func (dsa *discoverScheduleAccess) List(ctx context.Context, params interfaces.D
 
 	schedules := []*interfaces.DiscoverSchedule{}
 	for rows.Next() {
-		schedule := &interfaces.DiscoverSchedule{}
-		var strategiesStr string
-		err := rows.Scan(
-			&schedule.ID,
-			&schedule.CatalogID,
-			&schedule.CronExpr,
-			&schedule.StartTime,
-			&schedule.EndTime,
-			&schedule.Enabled,
-			&strategiesStr,
-			&schedule.LastRun,
-			&schedule.NextRun,
-			&schedule.Creator.ID,
-			&schedule.Creator.Type,
-			&schedule.CreateTime,
-			&schedule.Updater.ID,
-			&schedule.Updater.Type,
-			&schedule.UpdateTime,
-		)
+		schedule, err := scanDiscoverSchedule(rows)
 		if err != nil {
 			logger.Errorf("Scan discover_schedule failed: %v", err)
 			span.SetStatus(codes.Error, "Scan failed")
 			return nil, 0, err
 		}
-		// Parse strategies string to array
-		schedule.Strategies = stringToStrategies(strategiesStr)
 		schedules = append(schedules, schedule)
 	}
 
@@ -429,6 +426,7 @@ func (dsa *discoverScheduleAccess) Update(ctx context.Context, schedule *interfa
 
 	// Build update SQL - only update non-zero value fields
 	updateBuilder := sq.Update(DISCOVER_SCHEDULE_TABLE_NAME).
+		Set("f_name", schedule.Name).
 		Set("f_catalog_id", schedule.CatalogID).
 		Set("f_cron_expr", schedule.CronExpr).
 		Set("f_start_time", schedule.StartTime).
@@ -523,6 +521,7 @@ func (dsa *discoverScheduleAccess) GetEnabledSchedules(ctx context.Context) ([]*
 	// Build select SQL
 	sqlStr, vals, err := sq.Select(
 		"f_id",
+		"f_name",
 		"f_catalog_id",
 		"f_cron_expr",
 		"f_start_time",
@@ -563,6 +562,7 @@ func (dsa *discoverScheduleAccess) GetEnabledSchedules(ctx context.Context) ([]*
 		schedule := &interfaces.DiscoverSchedule{}
 		err := rows.Scan(
 			&schedule.ID,
+			&schedule.Name,
 			&schedule.CatalogID,
 			&schedule.CronExpr,
 			&schedule.StartTime,

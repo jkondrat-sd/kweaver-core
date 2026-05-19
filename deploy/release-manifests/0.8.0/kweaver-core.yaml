@@ -80,3 +80,6 @@ releases:
   agent-observability:
     chart: agent-observability
     version: 0.2.3
+  kafka-connect:
+    chart: kafka-connect
+    version: 0.1.0

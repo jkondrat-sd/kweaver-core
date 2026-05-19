@@ -15,7 +15,7 @@ const (
 	CatalogHealthStatusDegraded  string = "degraded"
 	CatalogHealthStatusUnhealthy string = "unhealthy"
 	CatalogHealthStatusOffline   string = "offline"
-	CatalogHealthStatusDisabled  string = "disabled"
+	CatalogHealthStatusUnchecked string = "unchecked"
 )
 
 type CatalogHealthCheckStatus struct {
@@ -63,12 +63,14 @@ var (
 // CatalogsQueryParams holds catalog list query parameters.
 type CatalogsQueryParams struct {
 	PaginationQueryParams
+	Name              string
 	Tag               string
 	Type              string
+	Enabled           *bool
 	HealthCheckStatus string
 	// ExtensionKeys / ExtensionValues 成对等长，多对 AND（列表筛选）
-	ExtensionKeys   []string
-	ExtensionValues []string
+	ExtensionKeys        []string
+	ExtensionValues      []string
 	IncludeExtensions    bool
 	IncludeExtensionKeys string
 }
@@ -79,14 +81,12 @@ type CatalogRequest struct {
 	Name          string          `json:"name"`
 	Tags          []string        `json:"tags"`
 	Description   string          `json:"description"`
+	Enabled       bool            `json:"enabled"`
 	ConnectorType string          `json:"connector_type"`
 	ConnectorCfg  ConnectorConfig `json:"connector_config"`
 
 	// Extensions 根对象出现该键（含 null 需客户端避免）时整包替换；指针为 nil 表示请求体未携带该字段
 	Extensions *map[string]string `json:"extensions,omitempty"`
-
-	IfNameModify  bool     `json:"-"`
-	OriginCatalog *Catalog `json:"-"`
 }
 
 type ListCatalogsQueryParams struct {

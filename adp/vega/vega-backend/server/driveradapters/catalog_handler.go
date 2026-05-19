@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 	"vega-backend/common"
 	"vega-backend/common/visitor"
@@ -23,11 +24,9 @@ import (
 	"github.com/kweaver-ai/kweaver-go-lib/otel/oteltrace"
 	"github.com/kweaver-ai/kweaver-go-lib/rest"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 
 	verrors "vega-backend/errors"
 	"vega-backend/interfaces"
-	"vega-backend/logics/extensions"
 )
 
 // Helper function to validate strategies array
@@ -49,29 +48,26 @@ func validateStrategies(strategies []string) error {
 
 // ListCatalogsByEx handles GET /api/vega-backend/v1/catalogs (External)
 func (r *restHandler) ListCatalogsByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 外网接口：校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.listCatalogs(c, ctx, span, visitor)
+	r.listCatalogs(c, visitor)
 }
 
 // ListCatalogsByIn handles GET /api/vega-backend/in/v1/catalogs (Internal)
 func (r *restHandler) ListCatalogsByIn(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 内网接口：user_id从header中取
 	visitor := visitor.GenerateVisitor(c)
-	r.listCatalogs(c, ctx, span, visitor)
+	r.listCatalogs(c, visitor)
 }
 
 // listCatalogs is the shared implementation
-func (r *restHandler) listCatalogs(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
+func (r *restHandler) listCatalogs(c *gin.Context, visitor hydra.Visitor) {
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
+
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -81,9 +77,23 @@ func (r *restHandler) listCatalogs(c *gin.Context, ctx context.Context, span tra
 	oteltrace.AddHttpAttrs4API(span, oteltrace.GetAttrsByGinCtx(c))
 
 	// 获取查询参数
+	name := strings.TrimSpace(c.Query("name"))
 	tag := strings.TrimSpace(c.Query("tag"))
 	typ := c.Query("type")
+	var enabled *bool
+	if enabledStr := strings.TrimSpace(c.Query("enabled")); enabledStr != "" {
+		b, err := strconv.ParseBool(enabledStr)
+		if err != nil {
+			httpErr := rest.NewHTTPError(ctx, http.StatusBadRequest, verrors.VegaBackend_Catalog_InvalidParameter).
+				WithErrorDetails(fmt.Sprintf("invalid enabled: %s", enabledStr))
+			oteltrace.AddHttpAttrs4HttpError(span, httpErr)
+			rest.ReplyError(c, httpErr)
+			return
+		}
+		enabled = &b
+	}
 	healthCheckStatus := c.Query("health_check_status")
+
 	offset := common.GetQueryOrDefault(c, "offset", interfaces.DEFAULT_OFFSET)
 	limit := common.GetQueryOrDefault(c, "limit", interfaces.DEFAULT_LIMIT)
 	sort := common.GetQueryOrDefault(c, "sort", "update_time")
@@ -103,26 +113,29 @@ func (r *restHandler) listCatalogs(c *gin.Context, ctx context.Context, span tra
 
 	extKeys := c.QueryArray("extension_key")
 	extVals := c.QueryArray("extension_value")
-	if err := extensions.ValidateExtensionQueryPairs(ctx, extKeys, extVals); err != nil {
+	includeExt := strings.EqualFold(strings.TrimSpace(c.Query("include_extensions")), "true")
+	includeExtKeys := strings.TrimSpace(c.Query("include_extension_keys"))
+
+	params := interfaces.CatalogsQueryParams{
+		PaginationQueryParams: pageParam,
+		Name:                  name,
+		Tag:                   tag,
+		Type:                  typ,
+		Enabled:               enabled,
+		HealthCheckStatus:     healthCheckStatus,
+		ExtensionKeys:         extKeys,
+		ExtensionValues:       extVals,
+		IncludeExtensions:     includeExt,
+		IncludeExtensionKeys:  includeExtKeys,
+	}
+
+	if err := ValidateCatalogListQueryParams(ctx, params); err != nil {
 		httpErr := err.(*rest.HTTPError)
 		otellog.LogError(ctx, fmt.Sprintf("%s. %v", httpErr.BaseError.Description,
 			httpErr.BaseError.ErrorDetails), nil)
 		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
 		rest.ReplyError(c, httpErr)
 		return
-	}
-	includeExt := strings.EqualFold(strings.TrimSpace(c.Query("include_extensions")), "true")
-	includeExtKeys := strings.TrimSpace(c.Query("include_extension_keys"))
-
-	params := interfaces.CatalogsQueryParams{
-		PaginationQueryParams: pageParam,
-		Tag:                   tag,
-		Type:                  typ,
-		HealthCheckStatus:     healthCheckStatus,
-		ExtensionKeys:         extKeys,
-		ExtensionValues:       extVals,
-		IncludeExtensions:     includeExt,
-		IncludeExtensionKeys:  includeExtKeys,
 	}
 
 	entries, total, err := r.cs.List(ctx, params)
@@ -147,29 +160,26 @@ func (r *restHandler) listCatalogs(c *gin.Context, ctx context.Context, span tra
 
 // CreateCatalogByEx handles POST /api/vega-backend/v1/catalogs (External)
 func (r *restHandler) CreateCatalogByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 外网接口：校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.createCatalog(c, ctx, span, visitor)
+	r.createCatalog(c, visitor)
 }
 
 // CreateCatalogByIn handles POST /api/vega-backend/in/v1/catalogs (Internal)
 func (r *restHandler) CreateCatalogByIn(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 内网接口：user_id从header中取
 	visitor := visitor.GenerateVisitor(c)
-	r.createCatalog(c, ctx, span, visitor)
+	r.createCatalog(c, visitor)
 }
 
 // createCatalog is the shared implementation
-func (r *restHandler) createCatalog(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
+func (r *restHandler) createCatalog(c *gin.Context, visitor hydra.Visitor) {
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
+
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -252,29 +262,26 @@ func (r *restHandler) createCatalog(c *gin.Context, ctx context.Context, span tr
 
 // GetCatalogsByEx handles GET /api/vega-backend/v1/catalogs/:ids (External)
 func (r *restHandler) GetCatalogsByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 外网接口：校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.getCatalogs(c, ctx, span, visitor)
+	r.getCatalogs(c, visitor)
 }
 
 // GetCatalogsByIn handles GET /api/vega-backend/in/v1/catalogs/:ids (Internal)
 func (r *restHandler) GetCatalogsByIn(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 内网接口：user_id从header中取
 	visitor := visitor.GenerateVisitor(c)
-	r.getCatalogs(c, ctx, span, visitor)
+	r.getCatalogs(c, visitor)
 }
 
 // getCatalogs is the shared implementation
-func (r *restHandler) getCatalogs(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
+func (r *restHandler) getCatalogs(c *gin.Context, visitor hydra.Visitor) {
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
+
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -323,29 +330,26 @@ func (r *restHandler) getCatalogs(c *gin.Context, ctx context.Context, span trac
 
 // UpdateCatalogByEx handles PUT /api/vega-backend/v1/catalogs/:id (External)
 func (r *restHandler) UpdateCatalogByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 外网接口：校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.updateCatalog(c, ctx, span, visitor)
+	r.updateCatalog(c, visitor)
 }
 
 // UpdateCatalogByIn handles PUT /api/vega-backend/in/v1/catalogs/:id (Internal)
 func (r *restHandler) UpdateCatalogByIn(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 内网接口：user_id从header中取
 	visitor := visitor.GenerateVisitor(c)
-	r.updateCatalog(c, ctx, span, visitor)
+	r.updateCatalog(c, visitor)
 }
 
 // updateCatalog is the shared implementation
-func (r *restHandler) updateCatalog(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
+func (r *restHandler) updateCatalog(c *gin.Context, visitor hydra.Visitor) {
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
+
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -395,7 +399,6 @@ func (r *restHandler) updateCatalog(c *gin.Context, ctx context.Context, span tr
 		rest.ReplyError(c, httpErr)
 		return
 	}
-	req.OriginCatalog = catalog
 
 	// Validate immutable fields
 	// connector_type cannot be modified
@@ -403,6 +406,14 @@ func (r *restHandler) updateCatalog(c *gin.Context, ctx context.Context, span tr
 		span.SetStatus(codes.Error, "Connector type cannot be modified")
 		httpErr := rest.NewHTTPError(ctx, http.StatusBadRequest, verrors.VegaBackend_Catalog_InvalidParameter_ConnectorType).
 			WithErrorDetails("connector_type cannot be modified")
+		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
+		rest.ReplyError(c, httpErr)
+		return
+	}
+	if req.Enabled != catalog.Enabled {
+		span.SetStatus(codes.Error, "Catalog enabled state cannot be modified by PUT")
+		httpErr := rest.NewHTTPError(ctx, http.StatusConflict, verrors.VegaBackend_Catalog_InvalidParameter).
+			WithErrorDetails("use POST /catalogs/{id}/enable or /disable to change enabled state")
 		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
 		rest.ReplyError(c, httpErr)
 		return
@@ -465,10 +476,9 @@ func (r *restHandler) updateCatalog(c *gin.Context, ctx context.Context, span tr
 			rest.ReplyError(c, httpErr)
 			return
 		}
-		req.IfNameModify = true
 	}
 
-	if err := r.cs.Update(ctx, id, &req); err != nil {
+	if err := r.cs.Update(ctx, catalog, &req); err != nil {
 		httpErr := err.(*rest.HTTPError)
 		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
 		rest.ReplyError(c, httpErr)
@@ -483,33 +493,103 @@ func (r *restHandler) updateCatalog(c *gin.Context, ctx context.Context, span tr
 	rest.ReplyOK(c, http.StatusNoContent, nil)
 }
 
+// ========== Enable / Disable Catalog ==========
+
+// EnableCatalogByEx handles POST /api/vega-backend/v1/catalogs/:id/enable (External)
+func (r *restHandler) EnableCatalogByEx(c *gin.Context) {
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
+	if err != nil {
+		return
+	}
+	r.setCatalogEnabled(c, visitor, true)
+}
+
+// EnableCatalogByIn handles POST /api/vega-backend/in/v1/catalogs/:id/enable (Internal)
+func (r *restHandler) EnableCatalogByIn(c *gin.Context) {
+	visitor := visitor.GenerateVisitor(c)
+	r.setCatalogEnabled(c, visitor, true)
+}
+
+// DisableCatalogByEx handles POST /api/vega-backend/v1/catalogs/:id/disable (External)
+func (r *restHandler) DisableCatalogByEx(c *gin.Context) {
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
+	if err != nil {
+		return
+	}
+	r.setCatalogEnabled(c, visitor, false)
+}
+
+// DisableCatalogByIn handles POST /api/vega-backend/in/v1/catalogs/:id/disable (Internal)
+func (r *restHandler) DisableCatalogByIn(c *gin.Context) {
+	visitor := visitor.GenerateVisitor(c)
+	r.setCatalogEnabled(c, visitor, false)
+}
+
+func (r *restHandler) setCatalogEnabled(c *gin.Context, visitor hydra.Visitor, enabled bool) {
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
+
+	accountInfo := interfaces.AccountInfo{
+		ID:   visitor.ID,
+		Type: string(visitor.Type),
+	}
+	ctx = context.WithValue(ctx, interfaces.ACCOUNT_INFO_KEY, accountInfo)
+	oteltrace.AddHttpAttrs4API(span, oteltrace.GetAttrsByGinCtx(c))
+
+	id := c.Param("id")
+	catalog, err := r.cs.GetByID(ctx, id, false)
+	if err != nil {
+		httpErr := err.(*rest.HTTPError)
+		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
+		rest.ReplyError(c, httpErr)
+		return
+	}
+
+	if catalog.Enabled == enabled {
+		oteltrace.AddHttpAttrs4Ok(span, http.StatusNoContent)
+		rest.ReplyOK(c, http.StatusNoContent, nil)
+		return
+	}
+
+	if err := r.cs.SetEnabled(ctx, catalog, enabled); err != nil {
+		httpErr := err.(*rest.HTTPError)
+		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
+		rest.ReplyError(c, httpErr)
+		return
+	}
+
+	audit.NewInfoLog(audit.OPERATION, audit.UPDATE, audit.TransforOperator(visitor),
+		interfaces.GenerateCatalogAuditObject(id, catalog.Name), "")
+
+	logger.Debug("Handler SetCatalogEnabled Success")
+	oteltrace.AddHttpAttrs4Ok(span, http.StatusNoContent)
+	rest.ReplyOK(c, http.StatusNoContent, nil)
+}
+
 // ========== DeleteCatalogs ==========
 
 // DeleteCatalogsByEx handles DELETE /api/vega-backend/v1/catalogs/:ids (External)
 func (r *restHandler) DeleteCatalogsByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 外网接口：校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.deleteCatalogs(c, ctx, span, visitor)
+	r.deleteCatalogs(c, visitor)
 }
 
 // DeleteCatalogsByIn handles DELETE /api/vega-backend/in/v1/catalogs/:ids (Internal)
 func (r *restHandler) DeleteCatalogsByIn(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 内网接口：user_id从header中取
 	visitor := visitor.GenerateVisitor(c)
-	r.deleteCatalogs(c, ctx, span, visitor)
+	r.deleteCatalogs(c, visitor)
 }
 
 // deleteCatalogs is the shared implementation
-func (r *restHandler) deleteCatalogs(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
+func (r *restHandler) deleteCatalogs(c *gin.Context, visitor hydra.Visitor) {
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
+
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -592,29 +672,26 @@ func (r *restHandler) deleteCatalogs(c *gin.Context, ctx context.Context, span t
 
 // GetCatalogHealthStatusByEx handles GET /api/vega-backend/v1/catalogs/:id/health-status (External)
 func (r *restHandler) GetCatalogHealthStatusByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 外网接口：校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.getCatalogHealthStatus(c, ctx, span, visitor)
+	r.getCatalogHealthStatus(c, visitor)
 }
 
 // GetCatalogHealthStatusByIn handles GET /api/vega-backend/in/v1/catalogs/:id/health-status (Internal)
 func (r *restHandler) GetCatalogHealthStatusByIn(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 内网接口：user_id从header中取
 	visitor := visitor.GenerateVisitor(c)
-	r.getCatalogHealthStatus(c, ctx, span, visitor)
+	r.getCatalogHealthStatus(c, visitor)
 }
 
 // getCatalogHealthStatus is the shared implementation
-func (r *restHandler) getCatalogHealthStatus(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
+func (r *restHandler) getCatalogHealthStatus(c *gin.Context, visitor hydra.Visitor) {
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
+
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -649,29 +726,26 @@ func (r *restHandler) getCatalogHealthStatus(c *gin.Context, ctx context.Context
 
 // TestConnectionByEx handles POST /api/vega-backend/v1/catalogs/:id/test-connection (External)
 func (r *restHandler) TestConnectionByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 外网接口：校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.testConnection(c, ctx, span, visitor)
+	r.testConnection(c, visitor)
 }
 
 // TestConnectionByIn handles POST /api/vega-backend/in/v1/catalogs/:id/test-connection (Internal)
 func (r *restHandler) TestConnectionByIn(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 内网接口：user_id从header中取
 	visitor := visitor.GenerateVisitor(c)
-	r.testConnection(c, ctx, span, visitor)
+	r.testConnection(c, visitor)
 }
 
 // testConnection is the shared implementation
-func (r *restHandler) testConnection(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
+func (r *restHandler) testConnection(c *gin.Context, visitor hydra.Visitor) {
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
+
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -700,7 +774,7 @@ func (r *restHandler) testConnection(c *gin.Context, ctx context.Context, span t
 	}
 
 	// 映射缓存的健康状态为对外契约：
-	// 严格 healthy = success=true，其它（degraded / unhealthy / offline / disabled）= false。
+	// 严格 healthy = success=true，其它（unchecked / degraded / unhealthy / offline）= false。
 	result := map[string]any{
 		"success": status.HealthCheckStatus == interfaces.CatalogHealthStatusHealthy,
 		"message": status.HealthCheckResult,
@@ -715,29 +789,26 @@ func (r *restHandler) testConnection(c *gin.Context, ctx context.Context, span t
 
 // DiscoverCatalogResourcesByEx handles POST /api/vega-backend/v1/catalogs/:id/discover (External)
 func (r *restHandler) DiscoverCatalogResourcesByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 外网接口：校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.discoverCatalogResources(c, ctx, span, visitor)
+	r.discoverCatalogResources(c, visitor)
 }
 
 // DiscoverCatalogResourcesByIn handles POST /api/vega-backend/in/v1/catalogs/:id/discover (Internal)
 func (r *restHandler) DiscoverCatalogResourcesByIn(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 内网接口：user_id从header中取
 	visitor := visitor.GenerateVisitor(c)
-	r.discoverCatalogResources(c, ctx, span, visitor)
+	r.discoverCatalogResources(c, visitor)
 }
 
 // discoverCatalogResources is the shared implementation
-func (r *restHandler) discoverCatalogResources(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
+func (r *restHandler) discoverCatalogResources(c *gin.Context, visitor hydra.Visitor) {
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
+
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -758,6 +829,13 @@ func (r *restHandler) discoverCatalogResources(c *gin.Context, ctx context.Conte
 	}
 	if catalog == nil {
 		httpErr := rest.NewHTTPError(ctx, http.StatusNotFound, verrors.VegaBackend_Catalog_NotFound)
+		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
+		rest.ReplyError(c, httpErr)
+		return
+	}
+	if !catalog.Enabled {
+		httpErr := rest.NewHTTPError(ctx, http.StatusConflict, verrors.VegaBackend_Catalog_IsDisabled).
+			WithErrorDetails("catalog is disabled")
 		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
 		rest.ReplyError(c, httpErr)
 		return
@@ -786,19 +864,19 @@ func (r *restHandler) discoverCatalogResources(c *gin.Context, ctx context.Conte
 
 // ListCatalogSrcsByEx catalog resource list (External)
 func (r *restHandler) ListCatalogSrcsByEx(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 外网接口：校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
-	r.listCatalogSrcs(c, ctx, span, visitor)
+	r.listCatalogSrcs(c, visitor)
 }
 
 // listCatalogSrcs is the shared implementation
-func (r *restHandler) listCatalogSrcs(c *gin.Context, ctx context.Context, span trace.Span, visitor hydra.Visitor) {
+func (r *restHandler) listCatalogSrcs(c *gin.Context, visitor hydra.Visitor) {
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
+
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),

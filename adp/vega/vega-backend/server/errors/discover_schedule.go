@@ -13,6 +13,7 @@ const (
 	// 400 Bad Request
 	VegaBackend_DiscoverSchedule_InvalidCronExpr   = "VegaBackend.DiscoverSchedule.InvalidCronExpr"
 	VegaBackend_DiscoverSchedule_InvalidStrategies = "VegaBackend.DiscoverSchedule.InvalidStrategies"
+	VegaBackend_DiscoverSchedule_InvalidTimeRange  = "VegaBackend.DiscoverSchedule.InvalidTimeRange"
 
 	// 409 Conflict
 	VegaBackend_DiscoverSchedule_IdMismatch             = "VegaBackend.DiscoverSchedule.IdMismatch"
@@ -23,7 +24,8 @@ const (
 	VegaBackend_DiscoverSchedule_InternalError_GetFailed    = "VegaBackend.DiscoverSchedule.InternalError.GetFailed"
 	VegaBackend_DiscoverSchedule_InternalError_CreateFailed = "VegaBackend.DiscoverSchedule.InternalError.CreateFailed"
 	VegaBackend_DiscoverSchedule_InternalError_UpdateFailed = "VegaBackend.DiscoverSchedule.InternalError.UpdateFailed"
-	VegaBackend_DiscoverSchedule_InternalError_DeleteFailed = "VegaBackend.DiscoverSchedule.InternalError.DeleteFailed"
+	VegaBackend_DiscoverSchedule_InternalError_DeleteFailed           = "VegaBackend.DiscoverSchedule.InternalError.DeleteFailed"
+	VegaBackend_DiscoverSchedule_InternalError_GetAccountNamesFailed  = "VegaBackend.DiscoverSchedule.InternalError.GetAccountNamesFailed"
 )
 
 var (
@@ -31,6 +33,7 @@ var (
 		VegaBackend_DiscoverSchedule_NotFound,
 		VegaBackend_DiscoverSchedule_InvalidCronExpr,
 		VegaBackend_DiscoverSchedule_InvalidStrategies,
+		VegaBackend_DiscoverSchedule_InvalidTimeRange,
 		VegaBackend_DiscoverSchedule_IdMismatch,
 		VegaBackend_DiscoverSchedule_CatalogMismatch,
 		VegaBackend_DiscoverSchedule_EnabledFieldNotAllowed,
@@ -38,5 +41,6 @@ var (
 		VegaBackend_DiscoverSchedule_InternalError_CreateFailed,
 		VegaBackend_DiscoverSchedule_InternalError_UpdateFailed,
 		VegaBackend_DiscoverSchedule_InternalError_DeleteFailed,
+		VegaBackend_DiscoverSchedule_InternalError_GetAccountNamesFailed,
 	}
 )

@@ -89,6 +89,7 @@ type ConnectorType struct {
 // ConnectorTypesQueryParams 查询参数
 type ConnectorTypesQueryParams struct {
 	PaginationQueryParams
+	Name     string `json:"name"`     // 按名称模糊筛选
 	Tag      string `json:"tag"`      // 按标签筛选
 	Mode     string `json:"mode"`     // 按模式筛选
 	Category string `json:"category"` // 按分类筛选
@@ -106,7 +107,4 @@ type ConnectorTypeReq struct {
 	Endpoint    string                          `json:"endpoint"`     // 仅 remote 模式，远程服务地址
 	FieldConfig map[string]ConnectorFieldConfig `json:"field_config"` // 字段配置（兼容 JSON Schema properties）
 	Enabled     bool                            `json:"enabled"`      // 是否启用
-
-	IfNameModify        bool           `json:"-"`
-	OriginConnectorType *ConnectorType `json:"-"`
 }

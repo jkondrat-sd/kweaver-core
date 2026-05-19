@@ -22,7 +22,6 @@ func ValidateResourceRequest(ctx context.Context, req *interfaces.ResourceReques
 	if err := validateID(ctx, req.ID); err != nil {
 		return err
 	}
-
 	if err := validateName(ctx, req.Name); err != nil {
 		return err
 	}
@@ -32,7 +31,6 @@ func ValidateResourceRequest(ctx context.Context, req *interfaces.ResourceReques
 	if err := validateDescription(ctx, req.Description); err != nil {
 		return err
 	}
-
 	if req.Extensions != nil {
 		if err := extensions.ValidateEntityExtensionsMap(ctx, *req.Extensions); err != nil {
 			return err
@@ -47,6 +45,58 @@ func ValidateResourceRequest(ctx context.Context, req *interfaces.ResourceReques
 			return err
 		}
 		return nil
+	}
+}
+
+func ValidateResourceListQueryParams(ctx context.Context, params interfaces.ResourcesQueryParams) error {
+	if err := validateResourceCategoryQueryParam(ctx, params.Category); err != nil {
+		return err
+	}
+	if err := validateResourceStatusQueryParam(ctx, params.Status); err != nil {
+		return err
+	}
+	if err := extensions.ValidateExtensionQueryPairs(ctx, params.ExtensionKeys, params.ExtensionValues); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateResourceCategoryQueryParam(ctx context.Context, category string) error {
+	if category == "" {
+		return nil
+	}
+
+	switch category {
+	case interfaces.ResourceCategoryTable,
+		interfaces.ResourceCategoryFile,
+		interfaces.ResourceCategoryFileset,
+		interfaces.ResourceCategoryAPI,
+		interfaces.ResourceCategoryMetric,
+		interfaces.ResourceCategoryTopic,
+		interfaces.ResourceCategoryIndex,
+		interfaces.ResourceCategoryLogicView,
+		interfaces.ResourceCategoryDataset:
+		return nil
+	default:
+		return rest.NewHTTPError(ctx, http.StatusBadRequest, verrors.VegaBackend_Resource_InvalidParameter).
+			WithErrorDetails(fmt.Sprintf("invalid category: %s", category))
+	}
+}
+
+func validateResourceStatusQueryParam(ctx context.Context, status string) error {
+	if status == "" {
+		return nil
+	}
+
+	switch status {
+	case interfaces.ResourceStatusActive,
+		interfaces.ResourceStatusDisabled,
+		interfaces.ResourceStatusDeprecated,
+		interfaces.ResourceStatusStale:
+		return nil
+	default:
+		return rest.NewHTTPError(ctx, http.StatusBadRequest, verrors.VegaBackend_Resource_InvalidParameter).
+			WithErrorDetails(fmt.Sprintf("invalid status: %s", status))
 	}
 }
 

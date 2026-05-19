@@ -28,14 +28,14 @@ import (
 
 // ListConnectorTypes handles GET /api/vega-backend/v1/connector-types
 func (r *restHandler) ListConnectorTypes(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
+
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -45,13 +45,19 @@ func (r *restHandler) ListConnectorTypes(c *gin.Context) {
 	oteltrace.AddHttpAttrs4API(span, oteltrace.GetAttrsByGinCtx(c))
 
 	// 获取查询参数
+	name := strings.TrimSpace(c.Query("name"))
 	tag := strings.TrimSpace(c.Query("tag"))
 	var enabled *bool
 	if enabledStr := c.Query("enabled"); enabledStr != "" {
 		b, err := strconv.ParseBool(enabledStr)
-		if err == nil {
-			enabled = &b
+		if err != nil {
+			httpErr := rest.NewHTTPError(ctx, http.StatusBadRequest, verrors.VegaBackend_ConnectorType_InvalidParameter).
+				WithErrorDetails(fmt.Sprintf("invalid enabled: %s", enabledStr))
+			oteltrace.AddHttpAttrs4HttpError(span, httpErr)
+			rest.ReplyError(c, httpErr)
+			return
 		}
+		enabled = &b
 	}
 	mode := c.Query("mode")
 	category := c.Query("category")
@@ -78,10 +84,20 @@ func (r *restHandler) ListConnectorTypes(c *gin.Context) {
 
 	params := interfaces.ConnectorTypesQueryParams{
 		PaginationQueryParams: pageParam,
+		Name:                  name,
 		Tag:                   tag,
 		Mode:                  mode,
 		Category:              category,
 		Enabled:               enabled,
+	}
+
+	if err := ValidateConnectorTypeListQueryParams(ctx, params); err != nil {
+		httpErr := err.(*rest.HTTPError)
+		otellog.LogError(ctx, fmt.Sprintf("%s. %v", httpErr.BaseError.Description,
+			httpErr.BaseError.ErrorDetails), nil)
+		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
+		rest.ReplyError(c, httpErr)
+		return
 	}
 
 	entries, total, err := r.cts.List(ctx, params)
@@ -104,14 +120,14 @@ func (r *restHandler) ListConnectorTypes(c *gin.Context) {
 
 // CreateConnectorType handles POST /api/vega-backend/v1/connector-types
 func (r *restHandler) RegisterConnectorType(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
+
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -173,14 +189,14 @@ func (r *restHandler) RegisterConnectorType(c *gin.Context) {
 
 // GetConnectorType handles GET /api/vega-backend/v1/connector-types/:type
 func (r *restHandler) GetConnectorType(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
+
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -212,14 +228,14 @@ func (r *restHandler) GetConnectorType(c *gin.Context) {
 
 // UpdateConnectorType handles PUT /api/vega-backend/v1/connector-types/:type
 func (r *restHandler) UpdateConnectorType(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
+
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -266,7 +282,6 @@ func (r *restHandler) UpdateConnectorType(c *gin.Context) {
 		rest.ReplyError(c, httpErr)
 		return
 	}
-	req.OriginConnectorType = connectorType
 
 	// Apply updates
 	if req.Name != connectorType.Name {
@@ -283,10 +298,9 @@ func (r *restHandler) UpdateConnectorType(c *gin.Context) {
 			rest.ReplyError(c, httpErr)
 			return
 		}
-		req.IfNameModify = true
 	}
 
-	if err := r.cts.Update(ctx, &req); err != nil {
+	if err := r.cts.Update(ctx, connectorType, &req); err != nil {
 		httpErr := err.(*rest.HTTPError)
 		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
 		rest.ReplyError(c, httpErr)
@@ -303,14 +317,14 @@ func (r *restHandler) UpdateConnectorType(c *gin.Context) {
 
 // DeleteConnectorType handles DELETE /api/vega-backend/v1/connector-types/:type
 func (r *restHandler) DeleteConnectorType(c *gin.Context) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
 	// 校验token
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
+
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
@@ -363,13 +377,14 @@ func (r *restHandler) DisableConnectorType(c *gin.Context) {
 }
 
 func (r *restHandler) setConnectorTypeEnabled(c *gin.Context, value bool, spanName string) {
-	ctx, span := oteltrace.StartServerSpan(c)
-	defer span.End()
-
-	visitor, err := r.verifyOAuth(ctx, c)
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
 	if err != nil {
 		return
 	}
+
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
+
 	accountInfo := interfaces.AccountInfo{
 		ID:   visitor.ID,
 		Type: string(visitor.Type),
