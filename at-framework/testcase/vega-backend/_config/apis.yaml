@@ -3,6 +3,8 @@
 #   GET|POST  /api/vega-backend/v1/catalogs
 #   GET|DELETE /api/vega-backend/v1/catalogs/{ids}
 #   PUT       /api/vega-backend/v1/catalogs/{id}
+#   POST      /api/vega-backend/v1/catalogs/{id}/enable
+#   POST      /api/vega-backend/v1/catalogs/{id}/disable
 #   GET       /api/vega-backend/v1/catalogs/{ids}/health-status
 #   POST      /api/vega-backend/v1/catalogs/{id}/test-connection
 #   GET|POST  /api/vega-backend/v1/resources
@@ -247,6 +249,76 @@
             {
               "error_code": "",
               "description": "资源冲突",
+              "solution": "",
+              "error_link": "",
+              "error_details": ""
+            }
+        500: >-
+            {
+              "error_code": "",
+              "description": "服务器内部错误",
+              "solution": "",
+              "error_link": "",
+              "error_details": ""
+            }
+
+-   name: 启用catalog
+    url: /api/vega-backend/v1/catalogs/${id}/enable
+    method: POST
+    headers: >-
+        {
+          "Accept": "application/json"
+        }
+    resp_schema:
+        "204": >-
+            {}
+        401: >-
+            {
+              "error_code": "",
+              "description": "未授权",
+              "solution": "",
+              "error_link": "",
+              "error_details": ""
+            }
+        404: >-
+            {
+              "error_code": "",
+              "description": "目录不存在",
+              "solution": "",
+              "error_link": "",
+              "error_details": ""
+            }
+        500: >-
+            {
+              "error_code": "",
+              "description": "服务器内部错误",
+              "solution": "",
+              "error_link": "",
+              "error_details": ""
+            }
+
+-   name: 禁用catalog
+    url: /api/vega-backend/v1/catalogs/${id}/disable
+    method: POST
+    headers: >-
+        {
+          "Accept": "application/json"
+        }
+    resp_schema:
+        "204": >-
+            {}
+        401: >-
+            {
+              "error_code": "",
+              "description": "未授权",
+              "solution": "",
+              "error_link": "",
+              "error_details": ""
+            }
+        404: >-
+            {
+              "error_code": "",
+              "description": "目录不存在",
               "solution": "",
               "error_link": "",
               "error_details": ""

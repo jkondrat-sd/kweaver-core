@@ -17,6 +17,19 @@
         }
     code_check: "200"
 
+-   name: "Positive_查询检索任务列表_全量参数_请求成功"
+    url: "查询检索任务列表"
+    query_params: >-
+        {
+            "status": "completed",
+            "trigger_type": "manual",
+            "offset": "0",
+            "limit": "20",
+            "sort": "create_time",
+            "direction": "desc"
+        }
+    code_check: "200"
+
 -   name: "Positive_查询检索任务列表_按status过滤_请求成功"
     url: "查询检索任务列表"
     query_params: >-

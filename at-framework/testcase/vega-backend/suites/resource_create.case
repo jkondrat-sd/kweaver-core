@@ -1,0 +1,100 @@
+-   name: "Negative_创建resource_dataset资源_缺少配置信息_请求失败"
+    url: "创建resource"
+    body_params: >-
+        {
+            "catalog_id": "${catalog_id}",
+            "name": "{{ '新增resource_dataset-%s' | format(random_string(6, 8)) }}",
+            "category": "dataset"
+        }
+    code_check: "400"
+
+-   name: "Negative_创建resource_logicview资源_缺少配置信息_请求失败"
+    url: "创建resource"
+    body_params: >-
+        {
+            "catalog_id": "${catalog_id}",
+            "name": "{{ '新增resource_dataset-%s' | format(random_string(6, 8)) }}",
+            "category": "dataset"
+        }
+    code_check: "400"
+
+-   name: "Negative_创建resource_其他资源_请求失败"
+    url: "创建resource"
+    body_params: >-
+        {
+            "catalog_id": "${catalog_id}",
+            "name": "{{ '新增resource_Others-%s' | format(random_string(6, 8)) }}",
+            "category": "table"
+        }
+    code_check: "400"
+
+-   name: "Negative_创建resource_其他资源_请求失败"
+    url: "创建resource"
+    body_params: >-
+        {
+            "catalog_id": "${catalog_id}",
+            "name": "{{ '新增resource_Others-%s' | format(random_string(6, 8)) }}",
+            "category": "file"
+        }
+    code_check: "400"
+
+-   name: "Negative_创建resource_其他资源_请求失败"
+    url: "创建resource"
+    body_params: >-
+        {
+            "catalog_id": "${catalog_id}",
+            "name": "{{ '新增resource_Others-%s' | format(random_string(6, 8)) }}",
+            "category": "fileset"
+        }
+    code_check: "400"
+
+-   name: "Negative_创建resource_其他资源_请求失败"
+    url: "创建resource"
+    body_params: >-
+        {
+            "catalog_id": "${catalog_id}",
+            "name": "{{ '新增resource_Others-%s' | format(random_string(6, 8)) }}",
+            "category": "api"
+        }
+    code_check: "400"
+
+-   name: "Negative_创建resource_其他资源_请求失败"
+    url: "创建resource"
+    body_params: >-
+        {
+            "catalog_id": "${catalog_id}",
+            "name": "{{ '新增resource_Others-%s' | format(random_string(6, 8)) }}",
+            "category": "metric"
+        }
+    code_check: "400"
+
+-   name: "Negative_创建resource_其他资源_请求失败"
+    url: "创建resource"
+    body_params: >-
+        {
+            "catalog_id": "${catalog_id}",
+            "name": "{{ '新增resource_Others-%s' | format(random_string(6, 8)) }}",
+            "category": "topic"
+        }
+    code_check: "400"
+
+-   name: "Negative_创建resource_其他资源_请求失败"
+    url: "创建resource"
+    body_params: >-
+        {
+            "catalog_id": "${catalog_id}",
+            "name": "{{ '新增resource_Others-%s' | format(random_string(6, 8)) }}",
+            "category": "index"
+        }
+    code_check: "400"
+
+-   name: "Negative_创建resource_资源类型未定义_请求失败"
+    url: "创建resource"
+    body_params: >-
+        {
+            "catalog_id": "${catalog_id}",
+            "name": "{{ '新增resource_Others-%s' | format(random_string(6, 8)) }}",
+            "category": "undefined"
+        }
+    code_check: "400"
+

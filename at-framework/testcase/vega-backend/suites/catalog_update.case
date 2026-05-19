@@ -33,6 +33,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -72,6 +73,27 @@
         }
     code_check: "409"
 
+-   name: "Negative_编辑catalog_更新状态_请求失败"
+    url: "编辑catalog"
+    path_params: >-
+        {
+            "id": "${catalog_id_required}"
+        }
+    body_params: >-
+        {
+            "id": "${catalog_id_required}",
+            "name": "${catalog_name_required}",
+            "connector_type": "mysql",
+            "enabled": true,
+            "connector_config": {
+                "host": "${mysql_host}",
+                "port": ${mysql_port},
+                "username": "${mysql_user}",
+                "password": "${mysql_password}"
+            }
+        }
+    code_check: "409"
+
 -   name: "Positive_编辑catalog_更新非必须字段_请求成功"
     url: "编辑catalog"
     path_params: >-
@@ -85,6 +107,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例更新",
             "tags": ["AT", "update"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -103,7 +126,90 @@
         }
     code_check: "204"
 
--   name: "Positive_编辑catalog_追加字段_请求成功"
+-   name: "Positive_编辑catalog_更新数据库配置_请求成功"
+    url: "编辑catalog"
+    path_params: >-
+        {
+            "id": "${catalog_id_required}"
+        }
+    body_params: >-
+        {
+            "id": "${catalog_id_required}",
+            "name": "{{ '更新catalog_AutoCase-%s' | format(random_string(6, 8)) }}",
+            "connector_type": "mysql",
+            "connector_config": {
+                "host": "${mysql_host}",
+                "port": ${mysql_port},
+                "username": "${mysql_user}",
+                "password": "${mysql_password}",
+                "databases": ["${mysql_db_1}"]
+             }
+        }
+    code_check: "204"
+
+-   name: "Positive_编辑catalog_更新数据库配置_请求成功"
+    url: "编辑catalog"
+    path_params: >-
+        {
+            "id": "${catalog_id_required}"
+        }
+    body_params: >-
+        {
+            "id": "${catalog_id_required}",
+            "name": "{{ '更新catalog_AutoCase-%s' | format(random_string(6, 8)) }}",
+            "connector_type": "mysql",
+            "connector_config": {
+                "host": "${mysql_host}",
+                "port": ${mysql_port},
+                "username": "${mysql_user}",
+                "password": "${mysql_password}",
+                "databases": ["${mysql_db_1}", "${mysql_db_2}"]
+             }
+        }
+    code_check: "204"
+
+-   name: "Positive_编辑catalog_移除数据库配置_请求成功"
+    url: "编辑catalog"
+    path_params: >-
+        {
+            "id": "${catalog_id_required}"
+        }
+    body_params: >-
+        {
+            "id": "${catalog_id_required}",
+            "name": "{{ '更新catalog_AutoCase-%s' | format(random_string(6, 8)) }}",
+            "connector_type": "mysql",
+            "connector_config": {
+                "host": "${mysql_host}",
+                "port": ${mysql_port},
+                "username": "${mysql_user}",
+                "password": "${mysql_password}",
+                "databases": ["${mysql_db_2}"]
+             }
+        }
+    code_check: "204"
+
+-   name: "Positive_编辑catalog_移除数据库配置_请求成功"
+    url: "编辑catalog"
+    path_params: >-
+        {
+            "id": "${catalog_id_required}"
+        }
+    body_params: >-
+        {
+            "id": "${catalog_id_required}",
+            "name": "{{ '更新catalog_AutoCase-%s' | format(random_string(6, 8)) }}",
+            "connector_type": "mysql",
+            "connector_config": {
+                "host": "${mysql_host}",
+                "port": ${mysql_port},
+                "username": "${mysql_user}",
+                "password": "${mysql_password}"
+             }
+        }
+    code_check: "204"
+
+-   name: "Positive_编辑catalog_追加非必须字段_请求成功"
     url: "编辑catalog"
     path_params: >-
         {
@@ -134,28 +240,9 @@
         }
     code_check: "204"
 
--   name: "Positive_编辑catalog_精简字段_请求成功"
-    url: "编辑catalog"
-    path_params: >-
-        {
-            "id": "${catalog_id_full}"
-        }
-    body_params: >-
-        {
-            "id": "${catalog_id_full}",
-            "name": "{{ '更新catalog_AutoCase-%s' | format(random_string(6, 8)) }}",
-            "connector_type": "mysql",
-            "connector_config": {
-                "host": "${mysql_host}",
-                "port": ${mysql_port},
-                "username": "${mysql_user}",
-                "password": "${mysql_password}"
-             }
-        }
-    code_check: "204"
-
 -   name: "Negative_编辑catalog_参数校验_id缺省_请求失败"
     url: "编辑catalog"
+    prev_case: "Positive_创建catalog_仅必需参数_请求成功"
     path_params: >-
         {
             "id": "${catalog_id_required}"
@@ -575,6 +662,7 @@
             "connector_type": "mysql",
             "description": "",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -598,6 +686,7 @@
             "connector_type": "mysql",
             "description": "{{ '自动化测试用例_AutoCase-%s' | format(random_string(983, 127)) }}",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -621,6 +710,7 @@
             "connector_type": "mysql",
             "description": "{{ '自动化测试用例_AutoCase-%s' | format(random_string(984, 127)) }}",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -644,6 +734,7 @@
             "connector_type": "mysql",
             "tags": [],
             "description": "自动化测试用例",
+            "enabled": true,
              "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -667,6 +758,7 @@
             "connector_type": "mysql",
             "tags": [""],
             "description": "自动化测试用例",
+            "enabled": true,
              "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -690,6 +782,7 @@
             "connector_type": "mysql",
             "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
             "description": "自动化测试用例",
+            "enabled": true,
              "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -713,6 +806,7 @@
             "connector_type": "mysql",
             "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6"],
             "description": "自动化测试用例",
+            "enabled": true,
              "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -736,6 +830,7 @@
             "connector_type": "mysql",
             "tags": "AT",
             "description": "自动化测试用例",
+            "enabled": true,
              "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -759,6 +854,7 @@
             "connector_type": "mysql",
             "tags": 0,
             "description": "自动化测试用例",
+            "enabled": true,
              "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -782,6 +878,7 @@
             "connector_type": "mysql",
             "tags": true,
             "description": "自动化测试用例",
+            "enabled": true,
              "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -805,6 +902,7 @@
             "connector_type": "mysql",
             "tags": [0],
             "description": "自动化测试用例",
+            "enabled": true,
              "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -828,6 +926,7 @@
             "connector_type": "mysql",
             "tags": [true],
             "description": "自动化测试用例",
+            "enabled": true,
              "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -851,6 +950,7 @@
             "connector_type": "mysql",
             "tags": [["AT"]],
             "description": "自动化测试用例",
+            "enabled": true,
              "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -874,6 +974,7 @@
             "connector_type": "mysql",
             "tags": [{}],
             "description": "自动化测试用例",
+            "enabled": true,
              "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -897,6 +998,7 @@
             "connector_type": "mysql",
             "tags": ["AT", 0, true, ["catalog"], {}],
             "description": "自动化测试用例",
+            "enabled": true,
              "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -921,6 +1023,7 @@
             "description": "自动化测试用例",
             "tags": ["AT", "AT"],
             "description": "自动化测试用例",
+            "enabled": true,
              "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -944,6 +1047,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {}
         }
     code_check: "400"
@@ -960,7 +1064,8 @@
             "name": "{{ '更新catalog_AutoCase-%s' | format(random_string(6, 8)) }}",
             "connector_type": "mysql",
             "description": "自动化测试用例",
-            "tags": ["AT"]
+            "tags": ["AT"],
+            "enabled": true
         }
     code_check: "400"
 
@@ -977,6 +1082,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": [
                 {
                     "host": "${mysql_host}",
@@ -1002,6 +1108,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": ""
         }
     code_check: "400"
@@ -1018,7 +1125,8 @@
             "name": "{{ '更新catalog_AutoCase-%s' | format(random_string(6, 8)) }}",
             "connector_type": "mysql",
             "description": "自动化测试用例",
-            "tags": ["AT"],        
+            "tags": ["AT"],
+            "enabled": true,
             "connector_config": 0
         }
     code_check: "400"
@@ -1036,6 +1144,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": true
         }
     code_check: "400"
@@ -1053,6 +1162,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "",
                 "port": ${mysql_port},
@@ -1076,6 +1186,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "port": ${mysql_port},
                 "username": "${mysql_user}",
@@ -1098,6 +1209,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": ["${mysql_host}"],
                 "port": ${mysql_port},
@@ -1121,6 +1233,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": 0,
                 "port": ${mysql_port},
@@ -1144,6 +1257,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": true,
                 "port": ${mysql_port},
@@ -1167,6 +1281,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "username": "${mysql_user}",
@@ -1189,6 +1304,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": "${mysql_port}",
@@ -1212,6 +1328,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": 1.2,
@@ -1235,6 +1352,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": true,
@@ -1258,6 +1376,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": [${mysql_port}],
@@ -1281,6 +1400,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -1304,6 +1424,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -1326,6 +1447,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -1349,6 +1471,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -1372,6 +1495,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -1395,6 +1519,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -1418,6 +1543,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -1440,6 +1566,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -1463,6 +1590,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -1486,6 +1614,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -1509,6 +1638,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -1533,6 +1663,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -1560,6 +1691,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},
@@ -1584,6 +1716,7 @@
             "connector_type": "mysql",
             "description": "自动化测试用例",
             "tags": ["AT"],
+            "enabled": true,
             "connector_config": {
                 "host": "${mysql_host}",
                 "port": ${mysql_port},

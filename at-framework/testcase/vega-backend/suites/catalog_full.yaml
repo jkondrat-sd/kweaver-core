@@ -42,6 +42,7 @@ cases:
                 "connector_type": "mysql",
                 "description": "自动化测试用例",
                 "tags": ["AT"],
+                "enabled": true,
                 "connector_config": {
                     "host": "${mysql_host}",
                     "port": ${mysql_port},
@@ -149,6 +150,54 @@ cases:
             }
         code_check: "404"
 
+    -   name: "Positive_启用catalog_请求成功"
+        url: "启用catalog"
+        path_params: >-
+            {
+                "id": "${catalog_id_required}"
+            }
+        code_check: "204"
+
+    -   name: "Positive_启用catalog_重复启用_请求成功"
+        url: "启用catalog"
+        path_params: >-
+            {
+                "id": "${catalog_id_required}"
+            }
+        code_check: "204"
+
+    -   name: "Negative_启用catalog_id不存在_请求失败"
+        url: "启用catalog"
+        path_params: >-
+            {
+                "id": "00000000000000000000"
+            }
+        code_check: "404"
+
+    -   name: "Positive_禁用catalog_请求成功"
+        url: "禁用catalog"
+        path_params: >-
+            {
+                "id": "${catalog_id_required}"
+            }
+        code_check: "204"
+
+    -   name: "Positive_禁用catalog_重复禁用_请求成功"
+        url: "禁用catalog"
+        path_params: >-
+            {
+                "id": "${catalog_id_required}"
+            }
+        code_check: "204"
+
+    -   name: "Negative_禁用catalog_id不存在_请求失败"
+        url: "禁用catalog"
+        path_params: >-
+            {
+                "id": "00000000000000000000"
+            }
+        code_check: "404"
+
     -   name: "Positive_编辑catalog_信息无更新_请求成功"
         url: "编辑catalog"
         path_params: >-
@@ -183,6 +232,7 @@ cases:
                 "connector_type": "mysql",
                 "description": "自动化测试用例",
                 "tags": ["AT"],
+                "enabled": true,
                 "connector_config": {
                     "host": "${mysql_host}",
                     "port": ${mysql_port},
@@ -260,6 +310,22 @@ cases:
 
     -   name: "Negative_catalog连接测试_id已删除_请求失败"
         url: "测试目录连接"
+        path_params: >-
+            {
+                "id": "${catalog_id_required}"
+            }
+        code_check: "404"
+
+    -   name: "Negative_启用catalog_id已删除_请求失败"
+        url: "启用catalog"
+        path_params: >-
+            {
+                "id": "${catalog_id_required}"
+            }
+        code_check: "404"
+
+    -   name: "Negative_禁用catalog_id已删除_请求失败"
+        url: "禁用catalog"
         path_params: >-
             {
                 "id": "${catalog_id_required}"

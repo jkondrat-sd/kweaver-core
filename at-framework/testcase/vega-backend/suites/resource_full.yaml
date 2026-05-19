@@ -8,6 +8,7 @@ tags:
 
 include:
     - resource_query.case
+    - resource_create.case
 
 cases:
     -   name: "Positive_创建catalog_数据源_请求成功"
@@ -16,6 +17,7 @@ cases:
             {
                 "name": "{{ '新增catalog_Physical-%s' | format(random_string(6, 8)) }}",
                 "connector_type": "mysql",
+                "enabled": true,
                 "connector_config": {
                     "host": "${mysql_host}",
                     "port": ${mysql_port},

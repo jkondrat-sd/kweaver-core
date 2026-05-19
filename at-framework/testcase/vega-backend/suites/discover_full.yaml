@@ -17,7 +17,8 @@ cases:
         url: "创建catalog"
         body_params: >-
             {
-                "name": "{{ '新增catalog_Logical-%s' | format(random_string(6, 8)) }}"
+                "name": "{{ '新增catalog_Logical-%s' | format(random_string(6, 8)) }}",
+                "enabled": true
             }
         resp_values: >-
             {
@@ -31,6 +32,7 @@ cases:
             {
                 "name": "{{ '新增catalog_Physical-%s' | format(random_string(6, 8)) }}",
                 "connector_type": "mysql",
+                "enabled": true,
                 "connector_config": {
                     "host": "${mysql_host}",
                     "port": ${mysql_port},
@@ -190,6 +192,7 @@ cases:
         prev_case: "Positive_创建catalog_数据源_请求成功"
         body_params: >-
             {
+                "name": "{{ '新增定时任务_Autocase-%s' | format(random_string(6, 8)) }}",
                 "catalog_id": "${catalog_id}",
                 "cron_expr": "00 08 * * *"
             }
@@ -203,6 +206,7 @@ cases:
         url: "创建调度任务"
         body_params: >-
             {
+                "name": "{{ '新增定时任务_Autocase-%s' | format(random_string(6, 8)) }}",
                 "catalog_id": "${catalog_id}",
                 "cron_expr": "00 08 * * *",
                 "start_time": {{ timestamp("ms", -86400000, "d") }},
@@ -217,6 +221,10 @@ cases:
         path_params: >-
             {
                 "id": "${scheduler_id}"
+            }
+        resp_values: >-
+            {
+                "scheduler_name": "$.name"
             }
         code_check: "200"
 
@@ -374,6 +382,7 @@ cases:
         url: "创建调度任务"
         body_params: >-
             {
+                "name": "{{ '新增catalog_AutoCase-%s' | format(random_string(6, 8)) }}",
                 "catalog_id": "${catalog_id}",
                 "cron_expr": "00 08 * * *"
             }

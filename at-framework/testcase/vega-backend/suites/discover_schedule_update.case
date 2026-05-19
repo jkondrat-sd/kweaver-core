@@ -1,4 +1,4 @@
--   name: "Positive_更新定时任务_修改执行条件_请求成功"
+-   name: "Positive_更新定时任务_更新任务名称_请求成功"
     url: "编辑调度任务"
     prev_case: "Positive_创建定时任务_每日8点执行_仅必需参数_请求成功"
     path_params: >-
@@ -7,6 +7,22 @@
         }
     body_params: >-
         {
+            "name": "{{ '更新定时任务_Autocase-%s' | format(random_string(6, 8)) }}",
+            "catalog_id": "${catalog_id}",
+            "cron_expr": "00 18 * * *"
+        }
+    code_check: "204"
+
+-   name: "Positive_更新定时任务_修改执行条件_请求成功"
+    url: "编辑调度任务"
+    prev_case: "Positive_查看定时任务详情_请求成功"
+    path_params: >-
+        {
+            "id": "${scheduler_id}"
+        }
+    body_params: >-
+        {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *"
         }
@@ -20,6 +36,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
@@ -37,6 +54,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "{{ '%s' | format(random_string(20, 10)) }}",
             "cron_expr": "00 18 * * *"
         }
@@ -50,6 +68,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "enabled": true
@@ -64,6 +83,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "strategies": ["insert"]
@@ -78,6 +98,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "strategies": ["update"]
@@ -92,6 +113,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "strategies": ["delete"]
@@ -106,6 +128,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *"
         }
@@ -119,6 +142,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "",
             "cron_expr": "00 18 * * *"
         }
@@ -132,6 +156,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "cron_expr": "00 18 * * *"
         }
     code_check: "400"
@@ -144,6 +169,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${scheduler_id}",
             "cron_expr": "00 18 * * *"
         }
@@ -157,6 +183,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": ""
         }
@@ -170,6 +197,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}"
         }
     code_check: "400"
@@ -182,6 +210,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "anything"
         }
@@ -195,6 +224,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": 0
         }
@@ -208,6 +238,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": true
         }
@@ -221,6 +252,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": ["00 18 * * *"]
         }
@@ -234,6 +266,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
@@ -250,6 +283,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "end_time": {{ timestamp("ms", 86400000, "d") }},
@@ -266,6 +300,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", 86400000, "d") }},
@@ -283,6 +318,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": -{{ timestamp("ms", -86400000, "d") }},
@@ -300,6 +336,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
@@ -317,6 +354,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": "{{ timestamp("ms", -86400000, "d") }}",
@@ -334,6 +372,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
@@ -351,6 +390,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": true,
@@ -368,6 +408,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
@@ -385,6 +426,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": 1778601600.123,
@@ -402,6 +444,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
@@ -419,6 +462,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": [{{ timestamp("ms", -86400000, "d") }}],
@@ -436,6 +480,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
@@ -453,6 +498,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
@@ -470,6 +516,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
@@ -487,6 +534,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
@@ -504,6 +552,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
@@ -521,6 +570,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
@@ -538,6 +588,7 @@
         }
     body_params: >-
         {
+            "name": "${scheduler_name}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 18 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
