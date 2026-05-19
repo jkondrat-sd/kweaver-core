@@ -913,32 +913,49 @@ PY
 # Exits the script on failure since step 7 cannot render the agent without these.
 resolve_contextloader_ids() {
     local kw="${CONTEXTLOADER_BOX_NAME:-contextloader}" box_id tools_raw search_id qoi_id subgraph_id
-    local list_raw
-    list_raw="$("${KWEAV[@]}" toolbox list --keyword "$kw" --limit 20 2>/dev/null || true)"
-    # Pick the most recently updated toolbox whose name contains "contextloader".
-    box_id="$(printf '%s' "$list_raw" | _extract_cli_json | jq -r --arg kw "$kw" '
-        (.entries // .data // .items // [])
-        | if type == "array" then . else [] end
-        | map(select((.box_name // .name // "") | test($kw; "i")))
-        | sort_by(.updated_at // .created_at // 0) | reverse
-        | (.[0].box_id // .[0].id // empty)
-    ' 2>/dev/null | head -1)"
-    if [ -z "$box_id" ]; then
-        echo "Error: no contextloader toolbox found on this platform." >&2
-        echo "       Set CONTEXTLOADER_BOX_NAME in .env, or check 'kweaver toolbox list --keyword contextloader'." >&2
-        exit 1
+
+    # Fast path: all four IDs provided via env (useful when the toolbox is a
+    # platform-internal box not visible in `toolbox list`).
+    if [ -n "${CONTEXTLOADER_BOX_ID:-}" ] &&        [ -n "${SEARCH_SCHEMA_TOOL_ID:-}" ] &&        [ -n "${QUERY_OBJECT_INSTANCE_TOOL_ID:-}" ] &&        [ -n "${SUBGRAPH_TOOL_ID:-}" ]; then
+        printf '%s\t%s\t%s\t%s\n'             "$CONTEXTLOADER_BOX_ID"             "$SEARCH_SCHEMA_TOOL_ID"             "$QUERY_OBJECT_INSTANCE_TOOL_ID"             "$SUBGRAPH_TOOL_ID"
+        return 0
     fi
+
+    # If CONTEXTLOADER_BOX_ID is set but tools are not, skip the toolbox list search.
+    if [ -n "${CONTEXTLOADER_BOX_ID:-}" ]; then
+        box_id="$CONTEXTLOADER_BOX_ID"
+    else
+        local list_raw
+        list_raw="$("${KWEAV[@]}" toolbox list --keyword "$kw" --limit 20 2>/dev/null || true)"
+        # Pick the most recently updated toolbox whose name contains the keyword.
+        box_id="$(printf '%s' "$list_raw" | _extract_cli_json | jq -r --arg kw "$kw" '
+            (.entries // .data // .items // [])
+            | if type == "array" then . else [] end
+            | map(select((.box_name // .name // "") | test($kw; "i")))
+            | sort_by(.updated_at // .created_at // 0) | reverse
+            | (.[0].box_id // .[0].id // empty)
+        ' 2>/dev/null | head -1)"
+        if [ -z "$box_id" ]; then
+            echo "Error: no contextloader toolbox found on this platform." >&2
+            echo "       Set CONTEXTLOADER_BOX_ID in .env (box_id of the contextloader toolbox)," >&2
+            echo "       or set CONTEXTLOADER_BOX_NAME to the toolbox name keyword." >&2
+            echo "       Check: kweaver toolbox list --keyword contextloader" >&2
+            exit 1
+        fi
+    fi
+
     tools_raw="$("${KWEAV[@]}" tool list --toolbox "$box_id" 2>/dev/null | _extract_cli_json)" || true
+    # search_schema may be named "kn_search" on some platform versions.
     search_id="$(printf '%s' "$tools_raw" | jq -r '
         (.tools // .entries // .data // .items // [])[]?
-        | select(.name == "search_schema") | (.tool_id // .id // empty)' 2>/dev/null | head -1)"
+        | select(.name == "search_schema" or .name == "kn_search") | (.tool_id // .id // empty)' 2>/dev/null | head -1)"
     qoi_id="$(printf '%s' "$tools_raw" | jq -r '
         (.tools // .entries // .data // .items // [])[]?
         | select(.name == "query_object_instance") | (.tool_id // .id // empty)' 2>/dev/null | head -1)"
     subgraph_id="$(printf '%s' "$tools_raw" | jq -r '
         (.tools // .entries // .data // .items // [])[]?
         | select(.name == "query_instance_subgraph") | (.tool_id // .id // empty)' 2>/dev/null | head -1)"
-    [ -z "$search_id" ]   && { echo "Error: search_schema tool not found in contextloader toolbox $box_id" >&2; exit 1; }
+    [ -z "$search_id" ]   && { echo "Error: search_schema/kn_search tool not found in contextloader toolbox $box_id" >&2; exit 1; }
     [ -z "$qoi_id" ]      && { echo "Error: query_object_instance tool not found in contextloader toolbox $box_id" >&2; exit 1; }
     [ -z "$subgraph_id" ] && { echo "Error: query_instance_subgraph tool not found in contextloader toolbox $box_id" >&2; exit 1; }
     printf '%s\t%s\t%s\t%s\n' "$box_id" "$search_id" "$qoi_id" "$subgraph_id"
@@ -1035,10 +1052,11 @@ step_7_agent() {
         [ -n "$agent_id" ] && echo "  reusing AGENT_ID=$agent_id (matched name='$agent_name')" >&2
     fi
 
+    local tmp_cfg
+    tmp_cfg="$(mktemp -t wc_agent_cfg.XXXXXX.json)"
+    render_agent_config "$kn_id" "$tmp_cfg"
+
     if [ -z "$agent_id" ]; then
-        local tmp_cfg
-        tmp_cfg="$(mktemp -t wc_agent_cfg.XXXXXX.json)"
-        render_agent_config "$kn_id" "$tmp_cfg"
         echo "  agent create (config rendered for KN=$kn_id)" >&2
         local create_out
         create_out="$("${KWEAV[@]}" agent create \
@@ -1049,10 +1067,13 @@ step_7_agent() {
         agent_id="$(printf '%s' "$create_out" | extract_agent_id)"
         [ -z "$agent_id" ] && { echo "Error: agent create returned no id:" >&2; echo "$create_out" >&2; exit 1; }
         echo "  created AGENT_ID=$agent_id" >&2
+    else
+        echo "  update config (tools + system prompt) for KN=$kn_id" >&2
+        "${KWEAV[@]}" agent update "$agent_id" \
+            --profile "$agent_profile" \
+            --config-path "$tmp_cfg"
+        rm -f "$tmp_cfg"
     fi
-
-    echo "  bind KN $kn_id" >&2
-    "${KWEAV[@]}" agent update "$agent_id" --knowledge-network-id "$kn_id"
 
     if [ "$DO_PUBLISH" = 1 ]; then
         echo "  publish" >&2
