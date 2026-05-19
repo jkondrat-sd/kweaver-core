@@ -463,17 +463,11 @@ func (cs *catalogService) Update(ctx context.Context, catalog *interfaces.Catalo
 	}
 
 	nameModified := req.Name != catalog.Name
-	wasEnabled := catalog.Enabled
-	healthCheckStatus := catalog.CatalogHealthCheckStatus
-	if healthCheckStatus.HealthCheckStatus == "" {
-		healthCheckStatus.HealthCheckStatus = interfaces.CatalogHealthStatusUnchecked
-	}
 
 	// Apply updates
 	catalog.Name = req.Name
 	catalog.Tags = req.Tags
 	catalog.Description = req.Description
-	catalog.Enabled = req.Enabled
 
 	if req.ConnectorType != "" {
 		// 验证敏感字段是否为合法 RSA 密文，获取明文用于连接测试
@@ -515,13 +509,6 @@ func (cs *catalogService) Update(ctx context.Context, catalog *interfaces.Catalo
 	now := time.Now().UnixMilli()
 	catalog.Updater = accountInfo
 	catalog.UpdateTime = now
-	catalog.CatalogHealthCheckStatus = healthCheckStatus
-	if catalog.Enabled && !wasEnabled {
-		catalog.CatalogHealthCheckStatus = interfaces.CatalogHealthCheckStatus{
-			HealthCheckStatus: interfaces.CatalogHealthStatusUnchecked,
-			LastCheckTime:     now,
-		}
-	}
 
 	if err := cs.ca.Update(ctx, catalog); err != nil {
 		span.SetStatus(codes.Error, "Update catalog failed")
@@ -550,6 +537,50 @@ func (cs *catalogService) Update(ctx context.Context, catalog *interfaces.Catalo
 		if err != nil {
 			return err
 		}
+	}
+
+	span.SetStatus(codes.Ok, "")
+	return nil
+}
+
+func (cs *catalogService) SetEnabled(ctx context.Context, catalog *interfaces.Catalog, enabled bool) error {
+	ctx, span := oteltrace.StartNamedInternalSpan(ctx, "Set catalog enabled")
+	defer span.End()
+
+	if catalog == nil {
+		span.SetStatus(codes.Error, "Catalog not found")
+		return rest.NewHTTPError(ctx, http.StatusNotFound, verrors.VegaBackend_Catalog_NotFound)
+	}
+
+	err := cs.ps.CheckPermission(ctx, interfaces.PermissionResource{
+		Type: interfaces.RESOURCE_TYPE_CATALOG,
+		ID:   catalog.ID,
+	}, []string{interfaces.OPERATION_TYPE_MODIFY})
+	if err != nil {
+		return err
+	}
+
+	status := catalog.CatalogHealthCheckStatus
+	if status.HealthCheckStatus == "" {
+		status.HealthCheckStatus = interfaces.CatalogHealthStatusUnchecked
+	}
+	now := time.Now().UnixMilli()
+	if enabled && !catalog.Enabled {
+		status = interfaces.CatalogHealthCheckStatus{
+			HealthCheckStatus: interfaces.CatalogHealthStatusUnchecked,
+			LastCheckTime:     now,
+		}
+	}
+
+	accountInfo := interfaces.AccountInfo{}
+	if v := ctx.Value(interfaces.ACCOUNT_INFO_KEY); v != nil {
+		accountInfo = v.(interfaces.AccountInfo)
+	}
+
+	if err := cs.ca.UpdateEnabled(ctx, catalog.ID, enabled, status, now, accountInfo); err != nil {
+		span.SetStatus(codes.Error, "Set catalog enabled failed")
+		return rest.NewHTTPError(ctx, http.StatusInternalServerError, verrors.VegaBackend_Catalog_InternalError_UpdateFailed).
+			WithErrorDetails(err.Error())
 	}
 
 	span.SetStatus(codes.Ok, "")

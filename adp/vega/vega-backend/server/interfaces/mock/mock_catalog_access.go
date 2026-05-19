@@ -233,6 +233,20 @@ func (mr *MockCatalogAccessMockRecorder) UpdateHealthCheckStatus(ctx, id, status
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHealthCheckStatus", reflect.TypeOf((*MockCatalogAccess)(nil).UpdateHealthCheckStatus), ctx, id, status)
 }
 
+// UpdateEnabled mocks base method.
+func (m *MockCatalogAccess) UpdateEnabled(ctx context.Context, id string, enabled bool, status interfaces.CatalogHealthCheckStatus, updateTime int64, updater interfaces.AccountInfo) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateEnabled", ctx, id, enabled, status, updateTime, updater)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateEnabled indicates an expected call of UpdateEnabled.
+func (mr *MockCatalogAccessMockRecorder) UpdateEnabled(ctx, id, enabled, status, updateTime, updater any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEnabled", reflect.TypeOf((*MockCatalogAccess)(nil).UpdateEnabled), ctx, id, enabled, status, updateTime, updater)
+}
+
 // UpdateMetadata mocks base method.
 func (m *MockCatalogAccess) UpdateMetadata(ctx context.Context, id string, metadata map[string]any) error {
 	m.ctrl.T.Helper()

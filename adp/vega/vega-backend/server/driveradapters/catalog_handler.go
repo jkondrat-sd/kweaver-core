@@ -408,6 +408,14 @@ func (r *restHandler) updateCatalog(c *gin.Context, visitor hydra.Visitor) {
 		rest.ReplyError(c, httpErr)
 		return
 	}
+	if req.Enabled != catalog.Enabled {
+		span.SetStatus(codes.Error, "Catalog enabled state cannot be modified by PUT")
+		httpErr := rest.NewHTTPError(ctx, http.StatusConflict, verrors.VegaBackend_Catalog_InvalidParameter).
+			WithErrorDetails("use POST /catalogs/{id}/enable or /disable to change enabled state")
+		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
+		rest.ReplyError(c, httpErr)
+		return
+	}
 
 	// connector_config immutable fields: host, port, database, databases, schemas, paths, protocol
 	// These fields cannot be modified or removed if they exist in the original catalog
@@ -479,6 +487,79 @@ func (r *restHandler) updateCatalog(c *gin.Context, visitor hydra.Visitor) {
 		interfaces.GenerateCatalogAuditObject(id, req.Name), "")
 
 	logger.Debug("Handler UpdateCatalog Success")
+	oteltrace.AddHttpAttrs4Ok(span, http.StatusNoContent)
+	rest.ReplyOK(c, http.StatusNoContent, nil)
+}
+
+// ========== Enable / Disable Catalog ==========
+
+// EnableCatalogByEx handles POST /api/vega-backend/v1/catalogs/:id/enable (External)
+func (r *restHandler) EnableCatalogByEx(c *gin.Context) {
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
+	if err != nil {
+		return
+	}
+	r.setCatalogEnabled(c, visitor, true)
+}
+
+// EnableCatalogByIn handles POST /api/vega-backend/in/v1/catalogs/:id/enable (Internal)
+func (r *restHandler) EnableCatalogByIn(c *gin.Context) {
+	visitor := visitor.GenerateVisitor(c)
+	r.setCatalogEnabled(c, visitor, true)
+}
+
+// DisableCatalogByEx handles POST /api/vega-backend/v1/catalogs/:id/disable (External)
+func (r *restHandler) DisableCatalogByEx(c *gin.Context) {
+	visitor, err := r.verifyOAuth(rest.GetLanguageCtx(c), c)
+	if err != nil {
+		return
+	}
+	r.setCatalogEnabled(c, visitor, false)
+}
+
+// DisableCatalogByIn handles POST /api/vega-backend/in/v1/catalogs/:id/disable (Internal)
+func (r *restHandler) DisableCatalogByIn(c *gin.Context) {
+	visitor := visitor.GenerateVisitor(c)
+	r.setCatalogEnabled(c, visitor, false)
+}
+
+func (r *restHandler) setCatalogEnabled(c *gin.Context, visitor hydra.Visitor, enabled bool) {
+	ctx, span := oteltrace.StartServerSpan(c)
+	defer span.End()
+
+	accountInfo := interfaces.AccountInfo{
+		ID:   visitor.ID,
+		Type: string(visitor.Type),
+	}
+	ctx = context.WithValue(ctx, interfaces.ACCOUNT_INFO_KEY, accountInfo)
+	oteltrace.AddHttpAttrs4API(span, oteltrace.GetAttrsByGinCtx(c))
+
+	id := c.Param("id")
+	catalog, err := r.cs.GetByID(ctx, id, false)
+	if err != nil {
+		httpErr := err.(*rest.HTTPError)
+		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
+		rest.ReplyError(c, httpErr)
+		return
+	}
+
+	if catalog.Enabled == enabled {
+		oteltrace.AddHttpAttrs4Ok(span, http.StatusNoContent)
+		rest.ReplyOK(c, http.StatusNoContent, nil)
+		return
+	}
+
+	if err := r.cs.SetEnabled(ctx, catalog, enabled); err != nil {
+		httpErr := err.(*rest.HTTPError)
+		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
+		rest.ReplyError(c, httpErr)
+		return
+	}
+
+	audit.NewInfoLog(audit.OPERATION, audit.UPDATE, audit.TransforOperator(visitor),
+		interfaces.GenerateCatalogAuditObject(id, catalog.Name), "")
+
+	logger.Debug("Handler SetCatalogEnabled Success")
 	oteltrace.AddHttpAttrs4Ok(span, http.StatusNoContent)
 	rest.ReplyOK(c, http.StatusNoContent, nil)
 }

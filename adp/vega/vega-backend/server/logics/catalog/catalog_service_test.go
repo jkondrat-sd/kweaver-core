@@ -354,72 +354,65 @@ func TestTestConnection_Valid(t *testing.T) {
 	}
 }
 
-func TestUpdate_ReenableSetsHealthStatusUnchecked(t *testing.T) {
+func TestSetEnabled_ReenableSetsHealthStatusUnchecked(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockCA := mock_interfaces.NewMockCatalogAccess(ctrl)
 	mockPS := mock_interfaces.NewMockPermissionService(ctrl)
 
 	mockPS.EXPECT().CheckPermission(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-	mockCA.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, catalog *interfaces.Catalog) error {
-			if !catalog.Enabled {
-				t.Fatal("expected catalog to be enabled")
+	mockCA.EXPECT().UpdateEnabled(gomock.Any(), "catalog-1", true, gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, enabled bool, status interfaces.CatalogHealthCheckStatus, _ int64, _ interfaces.AccountInfo) error {
+			if !enabled {
+				t.Fatal("expected enabled=true")
 			}
-			if catalog.HealthCheckStatus != interfaces.CatalogHealthStatusUnchecked {
-				t.Fatalf("expected unchecked status, got %s", catalog.HealthCheckStatus)
+			if status.HealthCheckStatus != interfaces.CatalogHealthStatusUnchecked {
+				t.Fatalf("expected unchecked status, got %s", status.HealthCheckStatus)
 			}
 			return nil
 		},
 	)
 
 	cs := &catalogService{ca: mockCA, ps: mockPS}
-	err := cs.Update(context.Background(), &interfaces.Catalog{
+	err := cs.SetEnabled(context.Background(), &interfaces.Catalog{
 		ID:      "catalog-1",
 		Name:    "catalog",
 		Enabled: false,
 		CatalogHealthCheckStatus: interfaces.CatalogHealthCheckStatus{
 			HealthCheckStatus: interfaces.CatalogHealthStatusHealthy,
 		},
-	}, &interfaces.CatalogRequest{
-		ID:      "catalog-1",
-		Name:    "catalog",
-		Enabled: true,
-	})
+	}, true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestUpdate_DisablePreservesHealthStatus(t *testing.T) {
+func TestSetEnabled_DisablePreservesHealthStatus(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockCA := mock_interfaces.NewMockCatalogAccess(ctrl)
 	mockPS := mock_interfaces.NewMockPermissionService(ctrl)
 
 	mockPS.EXPECT().CheckPermission(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-	mockCA.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, catalog *interfaces.Catalog) error {
-			if catalog.Enabled {
-				t.Fatal("expected catalog to be disabled")
+	mockCA.EXPECT().UpdateEnabled(gomock.Any(), "catalog-1", false, gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, enabled bool, status interfaces.CatalogHealthCheckStatus, _ int64, _ interfaces.AccountInfo) error {
+			if enabled {
+				t.Fatal("expected enabled=false")
 			}
-			if catalog.HealthCheckStatus != interfaces.CatalogHealthStatusHealthy {
-				t.Fatalf("expected preserved healthy status, got %s", catalog.HealthCheckStatus)
+			if status.HealthCheckStatus != interfaces.CatalogHealthStatusHealthy {
+				t.Fatalf("expected preserved healthy status, got %s", status.HealthCheckStatus)
 			}
 			return nil
 		},
 	)
 
 	cs := &catalogService{ca: mockCA, ps: mockPS}
-	err := cs.Update(context.Background(), &interfaces.Catalog{
+	err := cs.SetEnabled(context.Background(), &interfaces.Catalog{
 		ID:      "catalog-1",
 		Name:    "catalog",
 		Enabled: true,
 		CatalogHealthCheckStatus: interfaces.CatalogHealthCheckStatus{
 			HealthCheckStatus: interfaces.CatalogHealthStatusHealthy,
 		},
-	}, &interfaces.CatalogRequest{
-		ID:   "catalog-1",
-		Name: "catalog",
-	})
+	}, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -948,6 +948,37 @@ func (ca *catalogAccess) UpdateHealthCheckStatus(ctx context.Context, id string,
 	return nil
 }
 
+func (ca *catalogAccess) UpdateEnabled(ctx context.Context, id string, enabled bool,
+	status interfaces.CatalogHealthCheckStatus, updateTime int64, updater interfaces.AccountInfo) error {
+
+	ctx, span := oteltrace.StartNamedClientSpan(ctx, "Update catalog enabled")
+	defer span.End()
+
+	sqlStr, vals, err := sq.Update(CATALOG_TABLE_NAME).
+		Set("f_enabled", enabled).
+		Set("f_health_check_status", status.HealthCheckStatus).
+		Set("f_last_check_time", status.LastCheckTime).
+		Set("f_health_check_result", status.HealthCheckResult).
+		Set("f_updater", updater.ID).
+		Set("f_updater_type", updater.Type).
+		Set("f_update_time", updateTime).
+		Where(sq.Eq{"f_id": id}).
+		ToSql()
+	if err != nil {
+		span.SetStatus(codes.Error, "Build sql failed")
+		return err
+	}
+
+	_, err = ca.db.ExecContext(ctx, sqlStr, vals...)
+	if err != nil {
+		span.SetStatus(codes.Error, "Update enabled failed")
+		return err
+	}
+
+	span.SetStatus(codes.Ok, "")
+	return nil
+}
+
 func (ca *catalogAccess) UpdateMetadata(ctx context.Context, id string, metadata map[string]any) error {
 	ctx, span := oteltrace.StartNamedClientSpan(ctx, "Update catalog metadata")
 	defer span.End()
