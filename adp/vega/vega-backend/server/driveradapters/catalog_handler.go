@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 	"vega-backend/common"
 	"vega-backend/common/visitor"
@@ -78,7 +79,20 @@ func (r *restHandler) listCatalogs(c *gin.Context, visitor hydra.Visitor) {
 	// 获取查询参数
 	tag := strings.TrimSpace(c.Query("tag"))
 	typ := c.Query("type")
+	var enabled *bool
+	if enabledStr := strings.TrimSpace(c.Query("enabled")); enabledStr != "" {
+		b, err := strconv.ParseBool(enabledStr)
+		if err != nil {
+			httpErr := rest.NewHTTPError(ctx, http.StatusBadRequest, verrors.VegaBackend_Catalog_InvalidParameter).
+				WithErrorDetails(fmt.Sprintf("invalid enabled: %s", enabledStr))
+			oteltrace.AddHttpAttrs4HttpError(span, httpErr)
+			rest.ReplyError(c, httpErr)
+			return
+		}
+		enabled = &b
+	}
 	healthCheckStatus := c.Query("health_check_status")
+
 	offset := common.GetQueryOrDefault(c, "offset", interfaces.DEFAULT_OFFSET)
 	limit := common.GetQueryOrDefault(c, "limit", interfaces.DEFAULT_LIMIT)
 	sort := common.GetQueryOrDefault(c, "sort", "update_time")
@@ -105,6 +119,7 @@ func (r *restHandler) listCatalogs(c *gin.Context, visitor hydra.Visitor) {
 		PaginationQueryParams: pageParam,
 		Tag:                   tag,
 		Type:                  typ,
+		Enabled:               enabled,
 		HealthCheckStatus:     healthCheckStatus,
 		ExtensionKeys:         extKeys,
 		ExtensionValues:       extVals,
@@ -676,7 +691,7 @@ func (r *restHandler) testConnection(c *gin.Context, visitor hydra.Visitor) {
 	}
 
 	// 映射缓存的健康状态为对外契约：
-	// 严格 healthy = success=true，其它（degraded / unhealthy / offline / disabled）= false。
+	// 严格 healthy = success=true，其它（unchecked / degraded / unhealthy / offline）= false。
 	result := map[string]any{
 		"success": status.HealthCheckStatus == interfaces.CatalogHealthStatusHealthy,
 		"message": status.HealthCheckResult,

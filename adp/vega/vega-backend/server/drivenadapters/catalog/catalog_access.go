@@ -84,6 +84,7 @@ func (ca *catalogAccess) Create(ctx context.Context, catalog *interfaces.Catalog
 			"f_tags",
 			"f_description",
 			"f_type",
+			"f_enabled",
 			"f_connector_type",
 			"f_connector_config",
 			"f_metadata",
@@ -104,6 +105,7 @@ func (ca *catalogAccess) Create(ctx context.Context, catalog *interfaces.Catalog
 			tagsStr,
 			catalog.Description,
 			catalog.Type,
+			catalog.Enabled,
 			catalog.ConnectorType,
 			connectorConfigStr,
 			metadataStr,
@@ -148,6 +150,7 @@ func (ca *catalogAccess) GetByID(ctx context.Context, id string) (*interfaces.Ca
 		"f_tags",
 		"f_description",
 		"f_type",
+		"f_enabled",
 		"f_connector_type",
 		"f_connector_config",
 		"f_metadata",
@@ -182,6 +185,7 @@ func (ca *catalogAccess) GetByID(ctx context.Context, id string) (*interfaces.Ca
 		&tagsStr,
 		&catalog.Description,
 		&catalog.Type,
+		&catalog.Enabled,
 		&catalog.ConnectorType,
 		&connectorConfigStr,
 		&metadataStr,
@@ -250,6 +254,7 @@ func (ca *catalogAccess) GetByIDs(ctx context.Context, ids []string) ([]*interfa
 		"f_tags",
 		"f_description",
 		"f_type",
+		"f_enabled",
 		"f_connector_type",
 		"f_connector_config",
 		"f_metadata",
@@ -293,6 +298,7 @@ func (ca *catalogAccess) GetByIDs(ctx context.Context, ids []string) ([]*interfa
 			&tagsStr,
 			&catalog.Description,
 			&catalog.Type,
+			&catalog.Enabled,
 			&catalog.ConnectorType,
 			&connectorConfigStr,
 			&metadataStr,
@@ -364,6 +370,7 @@ func (ca *catalogAccess) GetByName(ctx context.Context, name string) (*interface
 		"f_tags",
 		"f_description",
 		"f_type",
+		"f_enabled",
 		"f_connector_type",
 		"f_connector_config",
 		"f_metadata",
@@ -398,6 +405,7 @@ func (ca *catalogAccess) GetByName(ctx context.Context, name string) (*interface
 		&tagsStr,
 		&catalog.Description,
 		&catalog.Type,
+		&catalog.Enabled,
 		&catalog.ConnectorType,
 		&connectorConfigStr,
 		&metadataStr,
@@ -468,6 +476,9 @@ func (ca *catalogAccess) ListIDs(ctx context.Context, params interfaces.Catalogs
 	if params.Type != "" {
 		builder = builder.Where(sq.Eq{catalogExtCol(params, "f_type"): params.Type})
 	}
+	if params.Enabled != nil {
+		builder = builder.Where(sq.Eq{catalogExtCol(params, "f_enabled"): *params.Enabled})
+	}
 	if params.HealthCheckStatus != "" {
 		builder = builder.Where(sq.Eq{catalogExtCol(params, "f_health_check_status"): params.HealthCheckStatus})
 	}
@@ -523,6 +534,7 @@ func (ca *catalogAccess) List(ctx context.Context, params interfaces.CatalogsQue
 		catalogExtCol(params, "f_tags"),
 		catalogExtCol(params, "f_description"),
 		catalogExtCol(params, "f_type"),
+		catalogExtCol(params, "f_enabled"),
 		catalogExtCol(params, "f_connector_type"),
 		catalogExtCol(params, "f_connector_config"),
 		catalogExtCol(params, "f_metadata"),
@@ -549,6 +561,10 @@ func (ca *catalogAccess) List(ctx context.Context, params interfaces.CatalogsQue
 	if params.Type != "" {
 		builder = builder.Where(sq.Eq{catalogExtCol(params, "f_type"): params.Type})
 		countBuilder = countBuilder.Where(sq.Eq{catalogExtCol(params, "f_type"): params.Type})
+	}
+	if params.Enabled != nil {
+		builder = builder.Where(sq.Eq{catalogExtCol(params, "f_enabled"): *params.Enabled})
+		countBuilder = countBuilder.Where(sq.Eq{catalogExtCol(params, "f_enabled"): *params.Enabled})
 	}
 	if params.HealthCheckStatus != "" {
 		builder = builder.Where(sq.Eq{catalogExtCol(params, "f_health_check_status"): params.HealthCheckStatus})
@@ -605,6 +621,7 @@ func (ca *catalogAccess) List(ctx context.Context, params interfaces.CatalogsQue
 			&tagsStr,
 			&catalog.Description,
 			&catalog.Type,
+			&catalog.Enabled,
 			&catalog.ConnectorType,
 			&connectorConfigStr,
 			&metadataStr,
@@ -851,6 +868,7 @@ func (ca *catalogAccess) Update(ctx context.Context, catalog *interfaces.Catalog
 		Set("f_name", catalog.Name).
 		Set("f_tags", tagsStr).
 		Set("f_description", catalog.Description).
+		Set("f_enabled", catalog.Enabled).
 		Set("f_connector_type", catalog.ConnectorType).
 		Set("f_connector_config", string(connectorConfigBytes)).
 		Set("f_metadata", string(metadataBytes)).

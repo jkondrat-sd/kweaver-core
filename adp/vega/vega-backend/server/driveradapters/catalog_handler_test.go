@@ -57,7 +57,16 @@ func Test_CatalogRestHandler_ListCatalogs(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "invalid health_check_status: unknown")
 		})
 
-		Convey("Success list catalogs with type and health check status\n", func() {
+		Convey("Invalid enabled\n", func() {
+			req := httptest.NewRequest(http.MethodGet, url+"?enabled=maybe", nil)
+			w := httptest.NewRecorder()
+			engine.ServeHTTP(w, req)
+
+			So(w.Result().StatusCode, ShouldEqual, http.StatusBadRequest)
+			So(w.Body.String(), ShouldContainSubstring, "invalid enabled: maybe")
+		})
+
+		Convey("Success list catalogs with name type and health check status\n", func() {
 			cs.EXPECT().List(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, params interfaces.CatalogsQueryParams) ([]*interfaces.Catalog, int64, error) {
 					So(params.Type, ShouldEqual, interfaces.CatalogTypePhysical)
@@ -66,6 +75,44 @@ func Test_CatalogRestHandler_ListCatalogs(t *testing.T) {
 				})
 
 			req := httptest.NewRequest(http.MethodGet, url+"?type=physical&health_check_status=healthy", nil)
+			w := httptest.NewRecorder()
+			engine.ServeHTTP(w, req)
+
+			So(w.Result().StatusCode, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("Success list catalogs with enabled filter\n", func() {
+			cs.EXPECT().List(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, params interfaces.CatalogsQueryParams) ([]*interfaces.Catalog, int64, error) {
+					So(params.Enabled, ShouldNotBeNil)
+					So(*params.Enabled, ShouldBeFalse)
+					return []*interfaces.Catalog{}, int64(0), nil
+				})
+
+			req := httptest.NewRequest(http.MethodGet, url+"?enabled=false", nil)
+			w := httptest.NewRecorder()
+			engine.ServeHTTP(w, req)
+
+			So(w.Result().StatusCode, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("Invalid disabled health check status\n", func() {
+			req := httptest.NewRequest(http.MethodGet, url+"?health_check_status=disabled", nil)
+			w := httptest.NewRecorder()
+			engine.ServeHTTP(w, req)
+
+			So(w.Result().StatusCode, ShouldEqual, http.StatusBadRequest)
+			So(w.Body.String(), ShouldContainSubstring, "invalid health_check_status: disabled")
+		})
+
+		Convey("Success list catalogs with unchecked health check status\n", func() {
+			cs.EXPECT().List(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, params interfaces.CatalogsQueryParams) ([]*interfaces.Catalog, int64, error) {
+					So(params.HealthCheckStatus, ShouldEqual, interfaces.CatalogHealthStatusUnchecked)
+					return []*interfaces.Catalog{}, int64(0), nil
+				})
+
+			req := httptest.NewRequest(http.MethodGet, url+"?health_check_status=unchecked", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
 

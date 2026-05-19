@@ -268,6 +268,65 @@ func TestCheckExistByName_Found(t *testing.T) {
 	}
 }
 
+// ===== Create =====
+
+func TestCreate_MissingEnabledDefaultsToDisabledAndUnchecked(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockCA := mock_interfaces.NewMockCatalogAccess(ctrl)
+	mockPS := mock_interfaces.NewMockPermissionService(ctrl)
+
+	mockPS.EXPECT().CheckPermission(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	mockCA.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, catalog *interfaces.Catalog) error {
+			if catalog.Enabled {
+				t.Fatal("expected catalog to be disabled by default")
+			}
+			if catalog.HealthCheckStatus != interfaces.CatalogHealthStatusUnchecked {
+				t.Fatalf("expected unchecked status, got %s", catalog.HealthCheckStatus)
+			}
+			return nil
+		},
+	)
+	mockPS.EXPECT().CreateResources(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+	cs := &catalogService{ca: mockCA, ps: mockPS}
+	_, err := cs.Create(context.Background(), &interfaces.CatalogRequest{
+		Name: "catalog",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestCreate_EnabledTrue(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockCA := mock_interfaces.NewMockCatalogAccess(ctrl)
+	mockPS := mock_interfaces.NewMockPermissionService(ctrl)
+
+	mockPS.EXPECT().CheckPermission(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	mockCA.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, catalog *interfaces.Catalog) error {
+			if !catalog.Enabled {
+				t.Fatal("expected catalog to be enabled")
+			}
+			if catalog.HealthCheckStatus != interfaces.CatalogHealthStatusUnchecked {
+				t.Fatalf("expected unchecked status, got %s", catalog.HealthCheckStatus)
+			}
+			return nil
+		},
+	)
+	mockPS.EXPECT().CreateResources(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+	cs := &catalogService{ca: mockCA, ps: mockPS}
+	_, err := cs.Create(context.Background(), &interfaces.CatalogRequest{
+		Name:    "catalog",
+		Enabled: true,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 // ===== TestConnection =====
 
 func TestTestConnection_NilCatalog(t *testing.T) {
@@ -292,6 +351,77 @@ func TestTestConnection_Valid(t *testing.T) {
 	}
 	if result.HealthCheckStatus != interfaces.CatalogHealthStatusHealthy {
 		t.Errorf("expected healthy status, got %s", result.HealthCheckStatus)
+	}
+}
+
+func TestUpdate_ReenableSetsHealthStatusUnchecked(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockCA := mock_interfaces.NewMockCatalogAccess(ctrl)
+	mockPS := mock_interfaces.NewMockPermissionService(ctrl)
+
+	mockPS.EXPECT().CheckPermission(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	mockCA.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, catalog *interfaces.Catalog) error {
+			if !catalog.Enabled {
+				t.Fatal("expected catalog to be enabled")
+			}
+			if catalog.HealthCheckStatus != interfaces.CatalogHealthStatusUnchecked {
+				t.Fatalf("expected unchecked status, got %s", catalog.HealthCheckStatus)
+			}
+			return nil
+		},
+	)
+
+	cs := &catalogService{ca: mockCA, ps: mockPS}
+	err := cs.Update(context.Background(), &interfaces.Catalog{
+		ID:      "catalog-1",
+		Name:    "catalog",
+		Enabled: false,
+		CatalogHealthCheckStatus: interfaces.CatalogHealthCheckStatus{
+			HealthCheckStatus: interfaces.CatalogHealthStatusHealthy,
+		},
+	}, &interfaces.CatalogRequest{
+		ID:      "catalog-1",
+		Name:    "catalog",
+		Enabled: true,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestUpdate_DisablePreservesHealthStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockCA := mock_interfaces.NewMockCatalogAccess(ctrl)
+	mockPS := mock_interfaces.NewMockPermissionService(ctrl)
+
+	mockPS.EXPECT().CheckPermission(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	mockCA.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, catalog *interfaces.Catalog) error {
+			if catalog.Enabled {
+				t.Fatal("expected catalog to be disabled")
+			}
+			if catalog.HealthCheckStatus != interfaces.CatalogHealthStatusHealthy {
+				t.Fatalf("expected preserved healthy status, got %s", catalog.HealthCheckStatus)
+			}
+			return nil
+		},
+	)
+
+	cs := &catalogService{ca: mockCA, ps: mockPS}
+	err := cs.Update(context.Background(), &interfaces.Catalog{
+		ID:      "catalog-1",
+		Name:    "catalog",
+		Enabled: true,
+		CatalogHealthCheckStatus: interfaces.CatalogHealthCheckStatus{
+			HealthCheckStatus: interfaces.CatalogHealthStatusHealthy,
+		},
+	}, &interfaces.CatalogRequest{
+		ID:   "catalog-1",
+		Name: "catalog",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

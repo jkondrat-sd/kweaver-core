@@ -139,11 +139,12 @@ func (cs *catalogService) Create(ctx context.Context, req *interfaces.CatalogReq
 		Tags:               req.Tags,
 		Description:        req.Description,
 		Type:               catalogType,
+		Enabled:            req.Enabled,
 		ConnectorType:      req.ConnectorType,
 		ConnectorCfg:       req.ConnectorCfg,
 		HealthCheckEnabled: true,
 		CatalogHealthCheckStatus: interfaces.CatalogHealthCheckStatus{
-			HealthCheckStatus: interfaces.CatalogHealthStatusHealthy,
+			HealthCheckStatus: interfaces.CatalogHealthStatusUnchecked,
 			LastCheckTime:     now,
 		},
 		Creator:    accountInfo,
@@ -451,7 +452,6 @@ func (cs *catalogService) Update(ctx context.Context, catalog *interfaces.Catalo
 		span.SetStatus(codes.Error, "Catalog not found")
 		return rest.NewHTTPError(ctx, http.StatusNotFound, verrors.VegaBackend_Catalog_NotFound)
 	}
-	nameModified := req.Name != catalog.Name
 
 	// 判断userid是否有修改权限
 	err := cs.ps.CheckPermission(ctx, interfaces.PermissionResource{
@@ -462,10 +462,18 @@ func (cs *catalogService) Update(ctx context.Context, catalog *interfaces.Catalo
 		return err
 	}
 
+	nameModified := req.Name != catalog.Name
+	wasEnabled := catalog.Enabled
+	healthCheckStatus := catalog.CatalogHealthCheckStatus
+	if healthCheckStatus.HealthCheckStatus == "" {
+		healthCheckStatus.HealthCheckStatus = interfaces.CatalogHealthStatusUnchecked
+	}
+
 	// Apply updates
 	catalog.Name = req.Name
 	catalog.Tags = req.Tags
 	catalog.Description = req.Description
+	catalog.Enabled = req.Enabled
 
 	if req.ConnectorType != "" {
 		// 验证敏感字段是否为合法 RSA 密文，获取明文用于连接测试
@@ -507,9 +515,12 @@ func (cs *catalogService) Update(ctx context.Context, catalog *interfaces.Catalo
 	now := time.Now().UnixMilli()
 	catalog.Updater = accountInfo
 	catalog.UpdateTime = now
-	catalog.CatalogHealthCheckStatus = interfaces.CatalogHealthCheckStatus{
-		HealthCheckStatus: interfaces.CatalogHealthStatusHealthy,
-		LastCheckTime:     now,
+	catalog.CatalogHealthCheckStatus = healthCheckStatus
+	if catalog.Enabled && !wasEnabled {
+		catalog.CatalogHealthCheckStatus = interfaces.CatalogHealthCheckStatus{
+			HealthCheckStatus: interfaces.CatalogHealthStatusUnchecked,
+			LastCheckTime:     now,
+		}
 	}
 
 	if err := cs.ca.Update(ctx, catalog); err != nil {
