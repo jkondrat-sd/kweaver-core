@@ -219,20 +219,6 @@ func (mr *MockCatalogAccessMockRecorder) Update(ctx, catalog any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockCatalogAccess)(nil).Update), ctx, catalog)
 }
 
-// UpdateHealthCheckStatus mocks base method.
-func (m *MockCatalogAccess) UpdateHealthCheckStatus(ctx context.Context, id string, status interfaces.CatalogHealthCheckStatus) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateHealthCheckStatus", ctx, id, status)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateHealthCheckStatus indicates an expected call of UpdateHealthCheckStatus.
-func (mr *MockCatalogAccessMockRecorder) UpdateHealthCheckStatus(ctx, id, status any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHealthCheckStatus", reflect.TypeOf((*MockCatalogAccess)(nil).UpdateHealthCheckStatus), ctx, id, status)
-}
-
 // UpdateEnabled mocks base method.
 func (m *MockCatalogAccess) UpdateEnabled(ctx context.Context, id string, enabled bool, status interfaces.CatalogHealthCheckStatus, updateTime int64, updater interfaces.AccountInfo) error {
 	m.ctrl.T.Helper()
@@ -245,6 +231,20 @@ func (m *MockCatalogAccess) UpdateEnabled(ctx context.Context, id string, enable
 func (mr *MockCatalogAccessMockRecorder) UpdateEnabled(ctx, id, enabled, status, updateTime, updater any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEnabled", reflect.TypeOf((*MockCatalogAccess)(nil).UpdateEnabled), ctx, id, enabled, status, updateTime, updater)
+}
+
+// UpdateHealthCheckStatus mocks base method.
+func (m *MockCatalogAccess) UpdateHealthCheckStatus(ctx context.Context, id string, status interfaces.CatalogHealthCheckStatus) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateHealthCheckStatus", ctx, id, status)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateHealthCheckStatus indicates an expected call of UpdateHealthCheckStatus.
+func (mr *MockCatalogAccessMockRecorder) UpdateHealthCheckStatus(ctx, id, status any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHealthCheckStatus", reflect.TypeOf((*MockCatalogAccess)(nil).UpdateHealthCheckStatus), ctx, id, status)
 }
 
 // UpdateMetadata mocks base method.

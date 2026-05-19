@@ -831,6 +831,13 @@ func (r *restHandler) discoverCatalogResources(c *gin.Context, visitor hydra.Vis
 		rest.ReplyError(c, httpErr)
 		return
 	}
+	if !catalog.Enabled {
+		httpErr := rest.NewHTTPError(ctx, http.StatusConflict, verrors.VegaBackend_Catalog_IsDisabled).
+			WithErrorDetails("catalog is disabled")
+		oteltrace.AddHttpAttrs4HttpError(span, httpErr)
+		rest.ReplyError(c, httpErr)
+		return
+	}
 
 	// Create discover task (async)
 	taskID, err := r.dts.Create(ctx, catalog.ID)
