@@ -66,85 +66,85 @@
         }
     code_check: "400"
 
-#-   name: "Negative_创建catalog_参数校验_id包含不支持的字符_请求失败"
-#    url: "创建catalog"
-#    body_params: >-
-#        {
-#            "id": "{{ '%s_%s-%s' | format(random_string(10, 2), random_string(10, 8), random_string(10, 1)) }}",
-#            "name": "{{ '新增catalog_MySQL-%s' | format(random_string(6, 8)) }}",
-#            "connector_type": "mysql",
-#            "connector_config": {
-#                "host": "${mysql_host}",
-#                "port": ${mysql_port},
-#                "username": "${mysql_user}",
-#                "password": "${mysql_password}"
-#            }
-#        }
-#    code_check: "400"
-#
-#-   name: "Negative_创建catalog_参数校验_id包含不支持的字符_请求失败"
-#    url: "创建catalog"
-#    body_params: >-
-#        {
-#            "id": "{{ '%s_%s-%s' | format(random_string(10, 2), random_string(10, 8), random_string(10, 4)) }}",
-#            "name": "{{ '新增catalog_MySQL-%s' | format(random_string(6, 8)) }}",
-#            "connector_type": "mysql",
-#            "connector_config": {
-#                "host": "${mysql_host}",
-#                "port": ${mysql_port},
-#                "username": "${mysql_user}",
-#                "password": "${mysql_password}"
-#            }
-#        }
-#    code_check: "400"
-#
-#-   name: "Negative_创建catalog_参数校验_id包含不支持的字符_请求失败"
-#    url: "创建catalog"
-#    body_params: >-
-#        {
-#            "id": "{{ '%s_%s-%s' | format(random_string(10, 2), random_string(10, 8), random_string(10, 64)) }}",
-#            "name": "{{ '新增catalog_MySQL-%s' | format(random_string(6, 8)) }}",
-#            "connector_type": "mysql",
-#            "connector_config": {
-#                "host": "${mysql_host}",
-#                "port": ${mysql_port},
-#                "username": "${mysql_user}",
-#                "password": "${mysql_password}"
-#            }
-#        }
-#    code_check: "400"
-#
-#-   name: "Negative_创建catalog_参数校验_id以符号开头_请求失败"
-#    url: "创建catalog"
-#    body_params: >-
-#        {
-#            "id": "{{ '_%s-%s' | format(random_string(10, 2), random_string(10, 8)) }}",
-#            "name": "{{ '新增catalog_MySQL-%s' | format(random_string(6, 8)) }}",
-#            "connector_type": "mysql",
-#            "connector_config": {
-#                "host": "${mysql_host}",
-#                "port": ${mysql_port},
-#                "username": "${mysql_user}",
-#                "password": "${mysql_password}"
-#            }
-#        }
-#    code_check: "400"
-#
-#-   name: "Negative_创建catalog_参数校验_id以符号开头_请求失败"
-#    url: "创建catalog"
-#    body_params: >-
-#        {
-#            "id": "{{ '-%s_%s' | format(random_string(10, 2), random_string(10, 8)) }}",
-#            "name": "{{ '新增catalog_MySQL-%s' | format(random_string(6, 8)) }}",
-#            "connector_type": "mysql",
-#            "connector_config": {
-#                "host": "${mysql_host}",
-#                "port": ${mysql_port},
-#                "username": "${mysql_user}",
-#                "password": "${mysql_password}"
-#            }
-#        }
-#    code_check: "400"
+-   name: "Negative_创建catalog_参数校验_id包含不支持的字符_请求失败"
+    url: "创建catalog"
+    body_params: >-
+        {
+            "id": "{{ '%s_%s-%s' | format(random_string(10, 2), random_string(10, 8), random_string(10, 1)) }}",
+            "name": "{{ '新增catalog_MySQL-%s' | format(random_string(6, 8)) }}",
+            "connector_type": "mysql",
+            "connector_config": {
+                "host": "${mysql_host}",
+                "port": ${mysql_port},
+                "username": "${mysql_user}",
+                "password": "${mysql_password}"
+            }
+        }
+    code_check: "400"
+
+-   name: "Negative_创建catalog_参数校验_id包含不支持的字符_请求失败"
+    url: "创建catalog"
+    body_params: >-
+        {
+            "id": "{{ '%s_%s-%s' | format(random_string(10, 2), random_string(10, 8), random_string(10, 4)) }}",
+            "name": "{{ '新增catalog_MySQL-%s' | format(random_string(6, 8)) }}",
+            "connector_type": "mysql",
+            "connector_config": {
+                "host": "${mysql_host}",
+                "port": ${mysql_port},
+                "username": "${mysql_user}",
+                "password": "${mysql_password}"
+            }
+        }
+    code_check: "400"
+
+-   name: "Negative_创建catalog_参数校验_id包含不支持的字符_请求失败"
+    url: "创建catalog"
+    body_params: >-
+        {
+            "id": "{{ '%s_%s-%s' | format(random_string(10, 2), random_string(10, 8), random_string(10, 64)) }}",
+            "name": "{{ '新增catalog_MySQL-%s' | format(random_string(6, 8)) }}",
+            "connector_type": "mysql",
+            "connector_config": {
+                "host": "${mysql_host}",
+                "port": ${mysql_port},
+                "username": "${mysql_user}",
+                "password": "${mysql_password}"
+            }
+        }
+    code_check: "400"
+
+-   name: "Negative_创建catalog_参数校验_id以符号开头_请求失败"
+    url: "创建catalog"
+    body_params: >-
+        {
+            "id": "{{ '_%s-%s' | format(random_string(10, 2), random_string(10, 8)) }}",
+            "name": "{{ '新增catalog_MySQL-%s' | format(random_string(6, 8)) }}",
+            "connector_type": "mysql",
+            "connector_config": {
+                "host": "${mysql_host}",
+                "port": ${mysql_port},
+                "username": "${mysql_user}",
+                "password": "${mysql_password}"
+            }
+        }
+    code_check: "400"
+
+-   name: "Negative_创建catalog_参数校验_id以符号开头_请求失败"
+    url: "创建catalog"
+    body_params: >-
+        {
+            "id": "{{ '-%s_%s' | format(random_string(10, 2), random_string(10, 8)) }}",
+            "name": "{{ '新增catalog_MySQL-%s' | format(random_string(6, 8)) }}",
+            "connector_type": "mysql",
+            "connector_config": {
+                "host": "${mysql_host}",
+                "port": ${mysql_port},
+                "username": "${mysql_user}",
+                "password": "${mysql_password}"
+            }
+        }
+    code_check: "400"
 
 -   name: "Negative_创建catalog_参数校验_id重复_请求失败"
     url: "创建catalog"

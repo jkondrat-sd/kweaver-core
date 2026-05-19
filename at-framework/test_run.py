@@ -379,7 +379,6 @@ def _jinja_random_string(length=8, model=8):
                   16=string.hexdigits
                   32=string.octdigits
                   64=string.punctuation
-                  128=常见中文
     """
 
     chars = ""

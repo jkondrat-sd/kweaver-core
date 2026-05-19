@@ -33,9 +33,6 @@ def session_clean_up(config: Dict[str, Dict[str, str]], allure) -> None:
         allure.attach("查询catalog列表失败：%s" % response.text, name=query_catalog_url)
         return
 
-    # catalog_ids = [x["id"] for x in response.json().get("entries")
-    #                if x["name"] not in ("adp_bkn_catalog", "kweaver_execution_factory_catalog")]
-
     for x in response.json().get("entries"):
         if x["name"] in ("adp_bkn_catalog", "kweaver_execution_factory_catalog"):
             continue

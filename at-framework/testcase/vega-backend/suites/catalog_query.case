@@ -6,6 +6,7 @@
     url: "查询catalog列表"
     query_params: >-
         {
+            "name": "",
             "tag": "",
             "type": "",
             "health_check_status": "",
@@ -60,6 +61,38 @@
             "limit": "10"
         }
     code_check: "200"
+
+-   name: "Positive_查询catalog列表_按name过滤_模糊搜索_请求成功"
+    url: "查询catalog列表"
+    query_params: >-
+        {
+            "name": "新增catalog"
+        }
+    code_check: "200"
+
+-   name: "Positive_查询catalog列表_按name过滤_精确搜索_请求成功"
+    url: "查询catalog列表"
+    query_params: >-
+        {
+            "name": "${catalog_name_required}"
+        }
+    code_check: "200"
+    resp_check: >-
+        {
+            "$.total_count": 1
+        }
+
+-   name: "Positive_查询catalog列表_按name过滤_随机字符_请求成功"
+    url: "查询catalog列表"
+    query_params: >-
+        {
+            "name": "{{ '%s-%s-%s' | format(random_string(12, 14), random_string(4, 1), random_string(8, 64)) }}"
+        }
+    code_check: "200"
+    resp_check: >-
+        {
+            "$.total_count": 0
+        }
 
 -   name: "Positive_查询catalog列表_按tag过滤_请求成功"
     url: "查询catalog列表"
