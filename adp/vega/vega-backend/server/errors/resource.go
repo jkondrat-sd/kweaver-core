@@ -21,18 +21,24 @@ const (
 	VegaBackend_InvalidParameter_OrderBy            = "VegaBackend.InvalidParameter.OrderBy"
 	VegaBackend_InvalidParameter_Having             = "VegaBackend.InvalidParameter.Having"
 	VegaBackend_InvalidParameter_CalendarInterval   = "VegaBackend.InvalidParameter.CalendarInterval"
+	VegaBackend_InvalidParameter_RuleName           = "VegaBackend.InvalidParameter.RuleName"
+	VegaBackend_InvalidParameter_ResourceID         = "VegaBackend.InvalidParameter.ResourceID"
+	VegaBackend_InvalidParameter_RuleID             = "VegaBackend.InvalidParameter.RuleID"
+	VegaBackend_InvalidParameter_Tags               = "VegaBackend.InvalidParameter.Tags"
 
 	// 404 Not Found
-	VegaBackend_Resource_NotFound        = "VegaBackend.Resource.NotFound"
-	VegaBackend_Resource_CatalogNotFound = "VegaBackend.Resource.CatalogNotFound"
+	VegaBackend_Resource_NotFound              = "VegaBackend.Resource.NotFound"
+	VegaBackend_Resource_CatalogNotFound       = "VegaBackend.Resource.CatalogNotFound"
+	VegaBackend_ResourceRowColumnRule_NotFound = "VegaBackend.ResourceRowColumnRule.NotFound"
 
 	// 409 Conflict（命名冲突 / 状态冲突）
-	VegaBackend_Resource_NameExists      = "VegaBackend.Resource.NameExists"
-	VegaBackend_Resource_IDExists        = "VegaBackend.Resource.IDExists"
-	VegaBackend_Resource_IsDisabled      = "VegaBackend.Resource.IsDisabled"
-	VegaBackend_Resource_AlreadyEnabled  = "VegaBackend.Resource.AlreadyEnabled"
-	VegaBackend_Resource_AlreadyDisabled = "VegaBackend.Resource.AlreadyDisabled"
-	VegaBackend_Resource_NotQueryable    = "VegaBackend.Resource.NotQueryable"
+	VegaBackend_Resource_NameExists               = "VegaBackend.Resource.NameExists"
+	VegaBackend_Resource_IDExists                 = "VegaBackend.Resource.IDExists"
+	VegaBackend_Resource_IsDisabled               = "VegaBackend.Resource.IsDisabled"
+	VegaBackend_Resource_AlreadyEnabled           = "VegaBackend.Resource.AlreadyEnabled"
+	VegaBackend_Resource_AlreadyDisabled          = "VegaBackend.Resource.AlreadyDisabled"
+	VegaBackend_Resource_NotQueryable             = "VegaBackend.Resource.NotQueryable"
+	VegaBackend_ResourceRowColumnRule_ExistByName = "VegaBackend.ResourceRowColumnRule.ExistByName"
 
 	// 500 Internal Server Error
 	VegaBackend_Resource_InternalError                       = "VegaBackend.Resource.InternalError"
@@ -43,6 +49,7 @@ const (
 	VegaBackend_Resource_InternalError_SyncFailed            = "VegaBackend.Resource.InternalError.SyncFailed"
 	VegaBackend_Resource_InternalError_InvalidCategory       = "VegaBackend.Resource.InternalError.InvalidCategory"
 	VegaBackend_Resource_InternalError_GetAccountNamesFailed = "VegaBackend.Resource.InternalError.GetAccountNamesFailed"
+	VegaBackend_ResourceRowColumnRule_InternalError          = "VegaBackend.ResourceRowColumnRule.InternalError"
 )
 
 var ResourceErrCodeList = []string{

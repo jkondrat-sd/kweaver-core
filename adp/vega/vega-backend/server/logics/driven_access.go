@@ -13,10 +13,11 @@ import (
 )
 
 var (
-	DB  *sql.DB
-	AA  interfaces.AuthAccess
-	PA  interfaces.PermissionAccess
-	UMA interfaces.UserMgmtAccess
+	DB       *sql.DB
+	AA       interfaces.AuthAccess
+	PA       interfaces.PermissionAccess
+	UMA      interfaces.UserMgmtAccess
+	RCRA     interfaces.ResourceRowColumnRuleAccess
 )
 
 func SetDB(db *sql.DB) {
@@ -33,4 +34,8 @@ func SetPermissionAccess(pa interfaces.PermissionAccess) {
 
 func SetUserMgmtAccess(uma interfaces.UserMgmtAccess) {
 	UMA = uma
+}
+
+func SetResourceRowColumnRuleAccess(rcra interfaces.ResourceRowColumnRuleAccess) {
+	RCRA = rcra
 }

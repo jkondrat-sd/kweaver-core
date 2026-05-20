@@ -24,6 +24,7 @@ import (
 	"vega-backend/common"
 	"vega-backend/drivenadapters/auth"
 	"vega-backend/drivenadapters/permission"
+	"vega-backend/drivenadapters/resource"
 	"vega-backend/drivenadapters/user_mgmt"
 	"vega-backend/driveradapters"
 	"vega-backend/logics"
@@ -120,6 +121,7 @@ func main() {
 		logics.SetAuthAccess(auth.NewHydraAuthAccess(appSetting))
 		logics.SetPermissionAccess(permission.NewPermissionAccess(appSetting))
 		logics.SetUserMgmtAccess(user_mgmt.NewUserMgmtAccess(appSetting))
+		logics.SetResourceRowColumnRuleAccess(resource.NewResourceRowColumnRuleAccess(appSetting))
 	}
 
 	// 初始化 Connector Factory 并注册内置的 Local Connector Builder

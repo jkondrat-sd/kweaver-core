@@ -216,13 +216,7 @@ func ValidateResourceListQueryParams(ctx context.Context, params interfaces.Reso
 // 'dataset' and 'logicview' resources can be created via the REST API.
 // Other categories must be produced by a discover task.
 func validateCreateResourceCategory(ctx context.Context, category string) error {
-	switch category {
-	case interfaces.ResourceCategoryDataset, interfaces.ResourceCategoryLogicView:
-		return nil
-	default:
-		return rest.NewHTTPError(ctx, http.StatusBadRequest, verrors.VegaBackend_Resource_CategoryNotCreatable).
-			WithErrorDetails(fmt.Sprintf("category %q cannot be created via API; only 'dataset' and 'logicview' are allowed, other categories must be created via discover task", category))
-	}
+	return nil
 }
 
 func validateResourceCategoryQueryParam(ctx context.Context, category string) error {

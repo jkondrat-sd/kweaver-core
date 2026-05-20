@@ -18,9 +18,10 @@ const (
 	RESOURCE_ID_ALL = "*"
 
 	// 资源类型
-	RESOURCE_TYPE_CATALOG        = "catalog"
-	RESOURCE_TYPE_CONNECTOR_TYPE = "connector_type"
-	RESOURCE_TYPE_RESOURCE       = "resource"
+	RESOURCE_TYPE_CATALOG                 = "catalog"
+	RESOURCE_TYPE_CONNECTOR_TYPE          = "connector_type"
+	RESOURCE_TYPE_RESOURCE                = "resource"
+	RESOURCE_TYPE_RESOURCE_ROW_COLUMN_RULE = "resource_row_column_rule"
 
 	// 资源操作类型
 	OPERATION_TYPE_VIEW_DETAIL = "view_detail"
@@ -29,6 +30,10 @@ const (
 	OPERATION_TYPE_DELETE      = "delete"
 	OPERATION_TYPE_AUTHORIZE   = "authorize"
 	OPERATION_TYPE_TASK_MANAGE = "task_manage"
+	
+	// Resource 行列规则操作类型
+	OPERATION_TYPE_RULE_MANAGE    = "rule_manage"    // 行列规则管理
+	OPERATION_TYPE_RULE_AUTHORIZE = "rule_authorize" // 行列规则授权
 
 	// 更新资源名称的topic
 	AUTHORIZATION_RESOURCE_NAME_MODIFY = "authorization.resource.name.modify"

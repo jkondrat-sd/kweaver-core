@@ -154,6 +154,9 @@ func (bh *batchBuildHandler) executeBuild(ctx context.Context, resource *interfa
 		}
 	}
 
+	// Inject build-task creator's AccountInfo into ctx for downstream ACL checks
+	ctx = context.WithValue(ctx, interfaces.ACCOUNT_INFO_KEY, buildTaskInfo.Creator)
+
 	// Get catalog for MySQL connection
 	catalog, err := bh.cs.GetByID(ctx, resource.CatalogID, true)
 	if err != nil {

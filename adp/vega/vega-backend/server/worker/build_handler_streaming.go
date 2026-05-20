@@ -108,6 +108,9 @@ func (sh *streamingBuildHandler) HandleTask(ctx context.Context, task *asynq.Tas
 		return nil
 	}
 
+	// Inject build-task creator's AccountInfo into ctx for downstream ACL checks
+	ctx = context.WithValue(ctx, interfaces.ACCOUNT_INFO_KEY, buildTaskInfo.Creator)
+
 	// Get catalog for MySQL connection
 	catalog, err := sh.cs.GetByID(ctx, resource.CatalogID, true)
 	if err != nil {

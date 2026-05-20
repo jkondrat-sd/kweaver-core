@@ -45,6 +45,7 @@ type restHandler struct {
 	as         interfaces.AuthService
 	cs         interfaces.CatalogService
 	rs         interfaces.ResourceService
+	rcrs       interfaces.ResourceRowColumnRuleService
 	bts        interfaces.BuildTaskService
 	ds         interfaces.DatasetService
 	cts        interfaces.ConnectorTypeService
@@ -59,6 +60,7 @@ type restHandler struct {
 func NewRestHandler(appSetting *common.AppSetting, sw *worker.ScheduleWorker) RestHandler {
 	cs := catalog.NewCatalogService(appSetting)
 	rs := resource.NewResourceService(appSetting)
+	rcrs := resource.NewResourceRowColumnRuleService(appSetting)
 	bts := build_task.NewBuildTaskService(appSetting)
 	ds := dataset.NewDatasetService(appSetting)
 	dts := discover_task.NewDiscoverTaskService(appSetting)
@@ -69,6 +71,7 @@ func NewRestHandler(appSetting *common.AppSetting, sw *worker.ScheduleWorker) Re
 		as:         auth.NewAuthService(appSetting),
 		cs:         cs,
 		rs:         rs,
+		rcrs:       rcrs,
 		bts:        bts,
 		ds:         ds,
 		cts:        connector_type.NewConnectorTypeService(appSetting),
@@ -135,10 +138,20 @@ func (r *restHandler) RegisterPublic(c *gin.Engine) {
 			resources.GET("/:id/data/:doc_id", r.GetResourceDataDocByEx)
 			resources.PUT("/:id/data/:doc_id", r.verifyJsonContentType(), r.PutResourceDataDocByEx)
 			resources.DELETE("/:id/data/:doc_ids", r.DeleteResourceDataByEx)
-			resources.GET("/:id", r.GetResourcesByEx) // id为资源ID，多个资源ID逗号分隔
+			resources.GET("/:id", r.GetResourcesByEx) // id 为资源 ID，多个资源 ID 逗号分隔
 			resources.PUT("/:id", r.verifyJsonContentType(), r.UpdateResourceByEx)
-			resources.DELETE("/:id", r.DeleteResourcesByEx) // id为资源ID，多个资源ID逗号分隔
+			resources.DELETE("/:id", r.DeleteResourcesByEx) // id 为资源 ID，多个资源 ID 逗号分隔
 			resources.POST("/query", r.verifyJsonContentType(), r.RawQueryByEx)
+		}
+
+		// Resource Row Column Rule APIs - External
+		resourceRowColumnRules := apiV1.Group("/resource-row-column-rules")
+		{
+			resourceRowColumnRules.POST("", r.verifyJsonContentType(), r.CreateResourceRowColumnRulesByEx)
+			resourceRowColumnRules.GET("", r.ListResourceRowColumnRulesByEx)
+			resourceRowColumnRules.GET("/:rule_id", r.GetResourceRowColumnRulesByEx)
+			resourceRowColumnRules.PUT("/:rule_id", r.verifyJsonContentType(), r.UpdateResourceRowColumnRulesByEx)
+			resourceRowColumnRules.DELETE("/:rule_ids", r.DeleteResourceRowColumnRulesByEx)
 		}
 
 		// BuildTask APIs - External
@@ -214,10 +227,20 @@ func (r *restHandler) RegisterPublic(c *gin.Engine) {
 			resources.GET("/:id/data/:doc_id", r.GetResourceDataDocByIn)
 			resources.PUT("/:id/data/:doc_id", r.verifyJsonContentType(), r.PutResourceDataDocByIn)
 			resources.DELETE("/:id/data/:doc_ids", r.DeleteResourceDataByIn)
-			resources.GET("/:id", r.GetResourcesByIn) // id为资源ID，多个资源ID逗号分隔
+			resources.GET("/:id", r.GetResourcesByIn) // id 为资源 ID，多个资源 ID 逗号分隔
 			resources.PUT("/:id", r.verifyJsonContentType(), r.UpdateResourceByIn)
-			resources.DELETE("/:id", r.DeleteResourcesByIn) // id为资源ID，多个资源ID逗号分隔
+			resources.DELETE("/:id", r.DeleteResourcesByIn) // id 为资源 ID，多个资源 ID 逗号分隔
 			resources.POST("/query", r.verifyJsonContentType(), r.RawQueryByIn)
+		}
+
+		// Resource Row Column Rule APIs - Internal
+		resourceRowColumnRules := apiInV1.Group("/resource-row-column-rules")
+		{
+			resourceRowColumnRules.POST("", r.verifyJsonContentType(), r.CreateResourceRowColumnRulesByIn)
+			resourceRowColumnRules.GET("", r.ListResourceRowColumnRulesByIn)
+			resourceRowColumnRules.GET("/:rule_id", r.GetResourceRowColumnRulesByIn)
+			resourceRowColumnRules.PUT("/:rule_id", r.verifyJsonContentType(), r.UpdateResourceRowColumnRulesByIn)
+			resourceRowColumnRules.DELETE("/:rule_ids", r.DeleteResourceRowColumnRulesByIn)
 		}
 
 		// BuildTask APIs - Internal
