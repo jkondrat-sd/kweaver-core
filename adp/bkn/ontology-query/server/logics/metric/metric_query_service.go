@@ -327,6 +327,22 @@ func (s *metricQueryService) buildResourceDataQueryParams(ctx context.Context, d
 			})
 		}
 	}
+
+	// 处理分析维度
+	if metricQuery != nil && len(metricQuery.AnalysisDimensions) > 0 {
+		for _, ad := range metricQuery.AnalysisDimensions {
+			resProp, err := mapDataPropertyToResourceField(ad, propMap)
+			if err != nil {
+				return nil, nil, rest.NewHTTPError(ctx, http.StatusBadRequest, oerrors.OntologyQuery_Metric_InvalidParameter).
+					WithErrorDetails(err.Error())
+			}
+			gb = append(gb, map[string]any{
+				"property": resProp,
+			})
+		}
+	}
+
+	// 处理时间趋势的分组聚合
 	if trend != nil {
 		// 拼上时间趋势的分组聚合
 		gb = append(gb, map[string]any{
