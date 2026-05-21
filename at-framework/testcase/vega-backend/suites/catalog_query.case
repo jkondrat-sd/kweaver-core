@@ -162,7 +162,7 @@
     url: "查询catalog列表"
     query_params: >-
         {
-         "enable": "undefined"
+         "enabled": "undefined"
         }
     code_check: "400"
 

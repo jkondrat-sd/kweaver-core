@@ -14,7 +14,7 @@
         {
             "catalog_id": "${catalog_id}",
             "name": "{{ '新增resource_dataset-%s' | format(random_string(6, 8)) }}",
-            "category": "dataset"
+            "category": "logicview"
         }
     code_check: "400"
 

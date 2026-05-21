@@ -212,7 +212,7 @@ cases:
                 "start_time": {{ timestamp("ms", -86400000, "d") }},
                 "end_time": {{ timestamp("ms", 86400000, "d") }},
                 "enabled": true,
-                "strategies": ["insert","delete","update"]
+                "strategy": "full_sync"
             }
         code_check: "201"
 

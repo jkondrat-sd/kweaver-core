@@ -14,47 +14,25 @@
         }
     code_check: "201"
 
--   name: "Positive_创建定时任务_指定策略_insert_请求成功"
+-   name: "Positive_创建定时任务_指定策略_create_请求成功"
     url: "创建调度任务"
     body_params: >-
         {
             "name": "{{ '新增定时任务_Autocase-%s' | format(random_string(6, 8)) }}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 09 * * *",
-            "strategies": ["insert"]
+            "strategy": "create_only"
         }
     code_check: "201"
 
--   name: "Positive_创建定时任务_指定策略_delete_请求成功"
+-   name: "Positive_创建定时任务_指定策略_cleanup_请求成功"
     url: "创建调度任务"
     body_params: >-
         {
             "name": "{{ '新增定时任务_Autocase-%s' | format(random_string(6, 8)) }}",
             "catalog_id": "${catalog_id}",
             "cron_expr": "00 09 * * *",
-            "strategies": ["delete"]
-        }
-    code_check: "201"
-
--   name: "Positive_创建定时任务_指定策略_update_请求成功"
-    url: "创建调度任务"
-    body_params: >-
-        {
-            "name": "{{ '新增定时任务_Autocase-%s' | format(random_string(6, 8)) }}",
-            "catalog_id": "${catalog_id}",
-            "cron_expr": "00 09 * * *",
-            "strategies": ["update"]
-        }
-    code_check: "201"
-
--   name: "Positive_创建定时任务_指定策略_复合策略_请求成功"
-    url: "创建调度任务"
-    body_params: >-
-        {
-            "name": "{{ '新增定时任务_Autocase-%s' | format(random_string(6, 8)) }}",
-            "catalog_id": "${catalog_id}",
-            "cron_expr": "00 09 * * *",
-            "strategies": ["insert","delete"]
+            "strategy": "cleanup_only"
         }
     code_check: "201"
 
@@ -185,7 +163,7 @@
             "cron_expr": "00 10 * * *",
             "start_time": {{ timestamp("ms", -86400000, "d") }},
             "enabled": true,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "201"
 
@@ -198,7 +176,7 @@
             "cron_expr": "00 10 * * *",
             "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": true,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "201"
 
@@ -212,7 +190,7 @@
             "start_time": {{ timestamp("ms", 86400000, "d") }},
             "end_time": {{ timestamp("ms", -86400000, "d") }},
             "enabled": true,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
@@ -226,7 +204,7 @@
             "start_time": -{{ timestamp("ms", -86400000, "d") }},
             "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": true,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
@@ -240,7 +218,7 @@
             "start_time": {{ timestamp("ms", -86400000, "d") }},
             "end_time": -{{ timestamp("ms", 86400000, "d") }},
             "enabled": true,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
@@ -254,7 +232,7 @@
             "start_time": "{{ timestamp("ms", -86400000, "d") }}",
             "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": true,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
@@ -268,7 +246,7 @@
             "start_time": {{ timestamp("ms", -86400000, "d") }},
             "end_time": "{{ timestamp("ms", 86400000, "d") }}",
             "enabled": true,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
@@ -282,7 +260,7 @@
             "start_time": true,
             "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": true,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
@@ -296,7 +274,7 @@
             "start_time": {{ timestamp("ms", -86400000, "d") }},
             "end_time": true,
             "enabled": true,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
@@ -310,7 +288,7 @@
             "start_time": 1778601600.123,
             "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": true,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
@@ -324,7 +302,7 @@
             "start_time": {{ timestamp("ms", -86400000, "d") }},
             "end_time": 1778688000.123,
             "enabled": true,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
@@ -338,7 +316,7 @@
             "start_time": [{{ timestamp("ms", -86400000, "d") }}],
             "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": true,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
@@ -352,7 +330,7 @@
             "start_time": {{ timestamp("ms", -86400000, "d") }},
             "end_time": [{{ timestamp("ms", 86400000, "d") }}],
             "enabled": true,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
@@ -366,7 +344,7 @@
             "start_time": {{ timestamp("ms", -86400000, "d") }},
             "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": "true",
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
@@ -380,7 +358,7 @@
             "start_time": {{ timestamp("ms", -86400000, "d") }},
             "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": 0,
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
@@ -394,11 +372,11 @@
             "start_time": {{ timestamp("ms", -86400000, "d") }},
             "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": [true],
-            "strategies": ["insert","delete","update"]
+            "strategy": "full_sync"
         }
     code_check: "400"
 
--   name: "Negative_创建定时任务_参数校验_strategies未定义_请求失败"
+-   name: "Negative_创建定时任务_参数校验_strategy未定义_请求失败"
     url: "创建调度任务"
     body_params: >-
         {
@@ -408,34 +386,7 @@
             "start_time": {{ timestamp("ms", -86400000, "d") }},
             "end_time": {{ timestamp("ms", 86400000, "d") }},
             "enabled": true,
-            "strategies": ["undefined"]
+            "strategy": "undefined"
         }
     code_check: "400"
 
--   name: "Negative_创建定时任务_参数校验_strategies未定义_请求失败"
-    url: "创建调度任务"
-    body_params: >-
-        {
-            "name": "{{ '新增定时任务_Autocase-%s' | format(random_string(6, 8)) }}",
-            "catalog_id": "${catalog_id}",
-            "cron_expr": "00 10 * * *",
-            "start_time": {{ timestamp("ms", -86400000, "d") }},
-            "end_time": {{ timestamp("ms", 86400000, "d") }},
-            "enabled": true,
-            "strategies": ["undefined", "update"]
-        }
-    code_check: "400"
-
--   name: "Positive_创建定时任务_参数校验_strategies重复_请求成功"
-    url: "创建调度任务"
-    body_params: >-
-        {
-            "name": "{{ '新增定时任务_Autocase-%s' | format(random_string(6, 8)) }}",
-            "catalog_id": "${catalog_id}",
-            "cron_expr": "00 10 * * *",
-            "start_time": {{ timestamp("ms", -86400000, "d") }},
-            "end_time": {{ timestamp("ms", 86400000, "d") }},
-            "enabled": true,
-            "strategies": ["insert","insert"]
-        }
-    code_check: "201"
