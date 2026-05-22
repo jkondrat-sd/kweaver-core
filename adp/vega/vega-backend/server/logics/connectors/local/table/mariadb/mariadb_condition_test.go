@@ -7,71 +7,71 @@ package mariadb
 
 import (
 	"context"
-	"strings"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 
 	"vega-backend/interfaces"
 	"vega-backend/logics/filter_condition"
 )
 
-// ===== quoteColumnName =====
-
 func TestQuoteColumnName_Simple(t *testing.T) {
-	if got := quoteColumnName("name"); got != "`name`" {
-		t.Errorf("expected `name`, got %s", got)
-	}
+	Convey("Test quoteColumnName with simple column", t, func() {
+		So(quoteColumnName("name"), ShouldEqual, "`name`")
+	})
 }
 
 func TestQuoteColumnName_WithAlias(t *testing.T) {
-	got := quoteColumnName("t1.name")
-	if got != "`t1`.`name`" {
-		t.Errorf("expected `t1`.`name`, got %s", got)
-	}
+	Convey("Test quoteColumnName with alias", t, func() {
+		So(quoteColumnName("t1.name"), ShouldEqual, "`t1`.`name`")
+	})
 }
 
 func TestQuoteColumnName_Empty(t *testing.T) {
-	if got := quoteColumnName(""); got != "``" {
-		t.Errorf("expected ``, got %s", got)
-	}
+	Convey("Test quoteColumnName with empty column", t, func() {
+		So(quoteColumnName(""), ShouldEqual, "``")
+	})
 }
 
 func TestQuoteColumnName_WithBacktick(t *testing.T) {
-	got := quoteColumnName("col`name")
-	if got != "`col``name`" {
-		t.Errorf("expected `col``name`, got %s", got)
-	}
+	Convey("Test quoteColumnName escapes backticks", t, func() {
+		So(quoteColumnName("col`name"), ShouldEqual, "`col``name`")
+	})
 }
 
 func TestQuoteColumnName_AliasWithSpaces(t *testing.T) {
-	got := quoteColumnName(" t1 . name ")
-	if got != "`t1`.`name`" {
-		t.Errorf("expected `t1`.`name`, got %s", got)
-	}
+	Convey("Test quoteColumnName trims alias spaces", t, func() {
+		So(quoteColumnName(" t1 . name "), ShouldEqual, "`t1`.`name`")
+	})
 }
-
-// ===== Special 字符转义 =====
 
 func TestSpecialReplacer(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{`hello`, `hello`},
-		{`%`, `\%`},
-		{`_`, `\_`},
-		{`'`, `\'`},
-		{`\`, `\\\\`},
-		{`100%_done`, `100\%\_done`},
-	}
-	for _, tt := range tests {
-		got := Special.Replace(tt.input)
-		if got != tt.expected {
-			t.Errorf("Special.Replace(%q) = %q, want %q", tt.input, got, tt.expected)
-		}
-	}
-}
+	Convey("Test Special replacer", t, func() {
+		Convey("Leaves normal text unchanged", func() {
+			So(Special.Replace(`hello`), ShouldEqual, `hello`)
+		})
 
-// ===== 辅助函数 =====
+		Convey("Escapes percent", func() {
+			So(Special.Replace(`%`), ShouldEqual, `\%`)
+		})
+
+		Convey("Escapes underscore", func() {
+			So(Special.Replace(`_`), ShouldEqual, `\_`)
+		})
+
+		Convey("Escapes quote", func() {
+			So(Special.Replace(`'`), ShouldEqual, `\'`)
+		})
+
+		Convey("Escapes backslash", func() {
+			So(Special.Replace(`\`), ShouldEqual, `\\\\`)
+		})
+
+		Convey("Escapes mixed special characters", func() {
+			So(Special.Replace(`100%_done`), ShouldEqual, `100\%\_done`)
+		})
+	})
+}
 
 func testFieldsMap() map[string]*interfaces.Property {
 	return map[string]*interfaces.Property{
@@ -85,21 +85,15 @@ func testFieldsMap() map[string]*interfaces.Property {
 	}
 }
 
-func toSQL(t *testing.T, connector *MariaDBConnector, cond interfaces.FilterCondition) (string, []interface{}) {
-	t.Helper()
+func toSQL(connector *MariaDBConnector, cond interfaces.FilterCondition) (string, []interface{}) {
 	sqlizer, err := connector.ConvertFilterCondition(context.Background(), cond, testFieldsMap())
-	if err != nil {
-		t.Fatalf("ConvertFilterCondition failed: %v", err)
-	}
+	So(err, ShouldBeNil)
 	sql, args, err := sqlizer.ToSql()
-	if err != nil {
-		t.Fatalf("ToSql failed: %v", err)
-	}
+	So(err, ShouldBeNil)
 	return sql, args
 }
 
-func mustNewCond(t *testing.T, name, op string, value any) interfaces.FilterCondition {
-	t.Helper()
+func mustNewCond(name, op string, value any) interfaces.FilterCondition {
 	cfg := &interfaces.FilterCondCfg{
 		Name:      name,
 		Operation: op,
@@ -109,311 +103,253 @@ func mustNewCond(t *testing.T, name, op string, value any) interfaces.FilterCond
 		},
 	}
 	cond, err := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("NewFilterCondition(%s, %s) failed: %v", name, op, err)
-	}
+	So(err, ShouldBeNil)
 	return cond
 }
 
-// ===== Equal =====
-
 func TestConvertEqual_Const(t *testing.T) {
-	c := &MariaDBConnector{}
-	cond := mustNewCond(t, "name", "==", "alice")
-	sql, args := toSQL(t, c, cond)
-	if sql != "`name` = ?" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
-	if len(args) != 1 || args[0] != "alice" {
-		t.Errorf("unexpected args: %v", args)
-	}
+	Convey("Test convert equal const", t, func() {
+		c := &MariaDBConnector{}
+		cond := mustNewCond("name", "==", "alice")
+		sql, args := toSQL(c, cond)
+		So(sql, ShouldEqual, "`name` = ?")
+		So(args, ShouldResemble, []interface{}{"alice"})
+	})
 }
 
 func TestConvertEqual_FieldToField(t *testing.T) {
-	c := &MariaDBConnector{}
-	cfg := &interfaces.FilterCondCfg{
-		Name:      "name",
-		Operation: "==",
-		ValueOptCfg: interfaces.ValueOptCfg{
-			ValueFrom: interfaces.ValueFrom_Field,
-			Value:     "tags",
-		},
-	}
-	cond, err := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	sql, _ := toSQL(t, c, cond)
-	if sql != "`name` = `tags`" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
+	Convey("Test convert equal field to field", t, func() {
+		c := &MariaDBConnector{}
+		cfg := &interfaces.FilterCondCfg{
+			Name:      "name",
+			Operation: "==",
+			ValueOptCfg: interfaces.ValueOptCfg{
+				ValueFrom: interfaces.ValueFrom_Field,
+				Value:     "tags",
+			},
+		}
+		cond, err := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
+		So(err, ShouldBeNil)
+		sql, _ := toSQL(c, cond)
+		So(sql, ShouldEqual, "`name` = `tags`")
+	})
 }
-
-// ===== NotEqual =====
 
 func TestConvertNotEqual(t *testing.T) {
-	c := &MariaDBConnector{}
-	cond := mustNewCond(t, "name", "!=", "bob")
-	sql, args := toSQL(t, c, cond)
-	if sql != "`name` <> ?" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
-	if len(args) != 1 || args[0] != "bob" {
-		t.Errorf("unexpected args: %v", args)
-	}
+	Convey("Test convert not equal", t, func() {
+		c := &MariaDBConnector{}
+		cond := mustNewCond("name", "!=", "bob")
+		sql, args := toSQL(c, cond)
+		So(sql, ShouldEqual, "`name` <> ?")
+		So(args, ShouldResemble, []interface{}{"bob"})
+	})
 }
 
-// ===== Comparison operators (Gt, Gte, Lt, Lte) =====
-
 func TestConvertGt(t *testing.T) {
-	c := &MariaDBConnector{}
-	cond := mustNewCond(t, "age", ">", 18)
-	sql, args := toSQL(t, c, cond)
-	if sql != "`age` > ?" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
-	if len(args) != 1 || args[0] != 18 {
-		t.Errorf("unexpected args: %v", args)
-	}
+	Convey("Test convert greater than", t, func() {
+		c := &MariaDBConnector{}
+		cond := mustNewCond("age", ">", 18)
+		sql, args := toSQL(c, cond)
+		So(sql, ShouldEqual, "`age` > ?")
+		So(args, ShouldResemble, []interface{}{18})
+	})
 }
 
 func TestConvertGte(t *testing.T) {
-	c := &MariaDBConnector{}
-	cond := mustNewCond(t, "age", ">=", 18)
-	sql, _ := toSQL(t, c, cond)
-	if sql != "`age` >= ?" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
+	Convey("Test convert greater than or equal", t, func() {
+		c := &MariaDBConnector{}
+		cond := mustNewCond("age", ">=", 18)
+		sql, _ := toSQL(c, cond)
+		So(sql, ShouldEqual, "`age` >= ?")
+	})
 }
 
 func TestConvertLt(t *testing.T) {
-	c := &MariaDBConnector{}
-	cond := mustNewCond(t, "age", "<", 65)
-	sql, _ := toSQL(t, c, cond)
-	if sql != "`age` < ?" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
+	Convey("Test convert less than", t, func() {
+		c := &MariaDBConnector{}
+		cond := mustNewCond("age", "<", 65)
+		sql, _ := toSQL(c, cond)
+		So(sql, ShouldEqual, "`age` < ?")
+	})
 }
 
 func TestConvertLte(t *testing.T) {
-	c := &MariaDBConnector{}
-	cond := mustNewCond(t, "age", "<=", 65)
-	sql, _ := toSQL(t, c, cond)
-	if sql != "`age` <= ?" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
+	Convey("Test convert less than or equal", t, func() {
+		c := &MariaDBConnector{}
+		cond := mustNewCond("age", "<=", 65)
+		sql, _ := toSQL(c, cond)
+		So(sql, ShouldEqual, "`age` <= ?")
+	})
 }
 
-// ===== In / NotIn =====
-
 func TestConvertIn(t *testing.T) {
-	c := &MariaDBConnector{}
-	cond := mustNewCond(t, "name", "in", []any{"alice", "bob"})
-	sql, args := toSQL(t, c, cond)
-	if sql != "`name` IN (?,?)" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
-	if len(args) != 2 {
-		t.Errorf("expected 2 args, got %d", len(args))
-	}
+	Convey("Test convert in", t, func() {
+		c := &MariaDBConnector{}
+		cond := mustNewCond("name", "in", []any{"alice", "bob"})
+		sql, args := toSQL(c, cond)
+		So(sql, ShouldEqual, "`name` IN (?,?)")
+		So(args, ShouldHaveLength, 2)
+	})
 }
 
 func TestConvertNotIn(t *testing.T) {
-	c := &MariaDBConnector{}
-	cond := mustNewCond(t, "name", "not_in", []any{"alice"})
-	sql, _ := toSQL(t, c, cond)
-	if sql != "`name` NOT IN (?)" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
+	Convey("Test convert not in", t, func() {
+		c := &MariaDBConnector{}
+		cond := mustNewCond("name", "not_in", []any{"alice"})
+		sql, _ := toSQL(c, cond)
+		So(sql, ShouldEqual, "`name` NOT IN (?)")
+	})
 }
 
-// ===== Like / NotLike =====
-
 func TestConvertLike(t *testing.T) {
-	c := &MariaDBConnector{}
-	cond := mustNewCond(t, "name", "like", "ali")
-	sql, args := toSQL(t, c, cond)
-	if sql != "`name` LIKE ?" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
-	if len(args) != 1 || args[0] != "%ali%" {
-		t.Errorf("unexpected args: %v", args)
-	}
+	Convey("Test convert like", t, func() {
+		c := &MariaDBConnector{}
+		cond := mustNewCond("name", "like", "ali")
+		sql, args := toSQL(c, cond)
+		So(sql, ShouldEqual, "`name` LIKE ?")
+		So(args, ShouldResemble, []interface{}{"%ali%"})
+	})
 }
 
 func TestConvertLike_SpecialChars(t *testing.T) {
-	c := &MariaDBConnector{}
-	cond := mustNewCond(t, "name", "like", "100%")
-	_, args := toSQL(t, c, cond)
-	argStr, ok := args[0].(string)
-	if !ok {
-		t.Fatalf("expected string arg, got %T", args[0])
-	}
-	// % 应被转义为 \%
-	if !strings.Contains(argStr, `\%`) {
-		t.Errorf("expected escaped %%, got %s", argStr)
-	}
+	Convey("Test convert like escapes special characters", t, func() {
+		c := &MariaDBConnector{}
+		cond := mustNewCond("name", "like", "100%")
+		_, args := toSQL(c, cond)
+		argStr, ok := args[0].(string)
+		So(ok, ShouldBeTrue)
+		So(argStr, ShouldContainSubstring, `\%`)
+	})
 }
 
-// ===== Null / NotNull =====
-
 func TestConvertNull(t *testing.T) {
-	c := &MariaDBConnector{}
-	cfg := &interfaces.FilterCondCfg{Name: "name", Operation: "null"}
-	cond, _ := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	sql, _ := toSQL(t, c, cond)
-	if sql != "`name` IS NULL" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
+	Convey("Test convert null", t, func() {
+		c := &MariaDBConnector{}
+		cfg := &interfaces.FilterCondCfg{Name: "name", Operation: "null"}
+		cond, err := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
+		So(err, ShouldBeNil)
+		sql, _ := toSQL(c, cond)
+		So(sql, ShouldEqual, "`name` IS NULL")
+	})
 }
 
 func TestConvertNotNull(t *testing.T) {
-	c := &MariaDBConnector{}
-	cfg := &interfaces.FilterCondCfg{Name: "name", Operation: "not_null"}
-	cond, _ := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	sql, _ := toSQL(t, c, cond)
-	if sql != "`name` IS NOT NULL" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
+	Convey("Test convert not null", t, func() {
+		c := &MariaDBConnector{}
+		cfg := &interfaces.FilterCondCfg{Name: "name", Operation: "not_null"}
+		cond, err := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
+		So(err, ShouldBeNil)
+		sql, _ := toSQL(c, cond)
+		So(sql, ShouldEqual, "`name` IS NOT NULL")
+	})
 }
-
-// ===== Empty / NotEmpty =====
 
 func TestConvertEmpty(t *testing.T) {
-	c := &MariaDBConnector{}
-	cfg := &interfaces.FilterCondCfg{Name: "name", Operation: "empty"}
-	cond, _ := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	sql, args := toSQL(t, c, cond)
-	if sql != "`name` = ?" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
-	if len(args) != 1 || args[0] != "" {
-		t.Errorf("unexpected args: %v", args)
-	}
+	Convey("Test convert empty", t, func() {
+		c := &MariaDBConnector{}
+		cfg := &interfaces.FilterCondCfg{Name: "name", Operation: "empty"}
+		cond, err := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
+		So(err, ShouldBeNil)
+		sql, args := toSQL(c, cond)
+		So(sql, ShouldEqual, "`name` = ?")
+		So(args, ShouldResemble, []interface{}{""})
+	})
 }
-
-// ===== Range =====
 
 func TestConvertRange(t *testing.T) {
-	c := &MariaDBConnector{}
-	cond := mustNewCond(t, "age", "range", []any{18, 65})
-	sql, args := toSQL(t, c, cond)
-	if !strings.Contains(sql, "`age` >= ?") || !strings.Contains(sql, "`age` <= ?") {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
-	if len(args) != 2 {
-		t.Errorf("expected 2 args, got %d", len(args))
-	}
+	Convey("Test convert range", t, func() {
+		c := &MariaDBConnector{}
+		cond := mustNewCond("age", "range", []any{18, 65})
+		sql, args := toSQL(c, cond)
+		So(sql, ShouldContainSubstring, "`age` >= ?")
+		So(sql, ShouldContainSubstring, "`age` <= ?")
+		So(args, ShouldHaveLength, 2)
+	})
 }
-
-// ===== Regex =====
 
 func TestConvertRegex(t *testing.T) {
-	c := &MariaDBConnector{}
-	cond := mustNewCond(t, "name", "regex", "^ali.*")
-	sql, args := toSQL(t, c, cond)
-	if sql != "`name` REGEXP ?" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
-	if len(args) != 1 || args[0] != "^ali.*" {
-		t.Errorf("unexpected args: %v", args)
-	}
+	Convey("Test convert regex", t, func() {
+		c := &MariaDBConnector{}
+		cond := mustNewCond("name", "regex", "^ali.*")
+		sql, args := toSQL(c, cond)
+		So(sql, ShouldEqual, "`name` REGEXP ?")
+		So(args, ShouldResemble, []interface{}{"^ali.*"})
+	})
 }
-
-// ===== True / False =====
 
 func TestConvertTrue(t *testing.T) {
-	c := &MariaDBConnector{}
-	cfg := &interfaces.FilterCondCfg{Name: "is_active", Operation: "true"}
-	cond, _ := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	sql, args := toSQL(t, c, cond)
-	if sql != "`is_active` = ?" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
-	if len(args) != 1 || args[0] != true {
-		t.Errorf("unexpected args: %v", args)
-	}
+	Convey("Test convert true", t, func() {
+		c := &MariaDBConnector{}
+		cfg := &interfaces.FilterCondCfg{Name: "is_active", Operation: "true"}
+		cond, err := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
+		So(err, ShouldBeNil)
+		sql, args := toSQL(c, cond)
+		So(sql, ShouldEqual, "`is_active` = ?")
+		So(args, ShouldResemble, []interface{}{true})
+	})
 }
-
-// ===== Prefix =====
 
 func TestConvertPrefix(t *testing.T) {
-	c := &MariaDBConnector{}
-	cond := mustNewCond(t, "name", "prefix", "ali")
-	sql, args := toSQL(t, c, cond)
-	if sql != "`name` LIKE ?" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
-	if len(args) != 1 || args[0] != "ali%" {
-		t.Errorf("unexpected args: %v", args)
-	}
+	Convey("Test convert prefix", t, func() {
+		c := &MariaDBConnector{}
+		cond := mustNewCond("name", "prefix", "ali")
+		sql, args := toSQL(c, cond)
+		So(sql, ShouldEqual, "`name` LIKE ?")
+		So(args, ShouldResemble, []interface{}{"ali%"})
+	})
 }
 
-// ===== And / Or 组合 =====
-
 func TestConvertAnd(t *testing.T) {
-	c := &MariaDBConnector{}
-	cfg := &interfaces.FilterCondCfg{
-		Operation: "and",
-		SubConds: []*interfaces.FilterCondCfg{
-			{Name: "name", Operation: "==", ValueOptCfg: interfaces.ValueOptCfg{ValueFrom: "const", Value: "alice"}},
-			{Name: "age", Operation: ">", ValueOptCfg: interfaces.ValueOptCfg{ValueFrom: "const", Value: 18}},
-		},
-	}
-	cond, err := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	sql, args := toSQL(t, c, cond)
-	if !strings.Contains(sql, "`name` = ?") || !strings.Contains(sql, "`age` > ?") {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
-	if !strings.Contains(sql, " AND ") {
-		t.Errorf("expected AND in SQL: %s", sql)
-	}
-	if len(args) != 2 {
-		t.Errorf("expected 2 args, got %d", len(args))
-	}
+	Convey("Test convert and", t, func() {
+		c := &MariaDBConnector{}
+		cfg := &interfaces.FilterCondCfg{
+			Operation: "and",
+			SubConds: []*interfaces.FilterCondCfg{
+				{Name: "name", Operation: "==", ValueOptCfg: interfaces.ValueOptCfg{ValueFrom: "const", Value: "alice"}},
+				{Name: "age", Operation: ">", ValueOptCfg: interfaces.ValueOptCfg{ValueFrom: "const", Value: 18}},
+			},
+		}
+		cond, err := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
+		So(err, ShouldBeNil)
+		sql, args := toSQL(c, cond)
+		So(sql, ShouldContainSubstring, "`name` = ?")
+		So(sql, ShouldContainSubstring, "`age` > ?")
+		So(sql, ShouldContainSubstring, " AND ")
+		So(args, ShouldHaveLength, 2)
+	})
 }
 
 func TestConvertOr(t *testing.T) {
-	c := &MariaDBConnector{}
-	cfg := &interfaces.FilterCondCfg{
-		Operation: "or",
-		SubConds: []*interfaces.FilterCondCfg{
-			{Name: "name", Operation: "==", ValueOptCfg: interfaces.ValueOptCfg{ValueFrom: "const", Value: "alice"}},
-			{Name: "name", Operation: "==", ValueOptCfg: interfaces.ValueOptCfg{ValueFrom: "const", Value: "bob"}},
-		},
-	}
-	cond, err := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	sql, _ := toSQL(t, c, cond)
-	if !strings.Contains(sql, " OR ") {
-		t.Errorf("expected OR in SQL: %s", sql)
-	}
+	Convey("Test convert or", t, func() {
+		c := &MariaDBConnector{}
+		cfg := &interfaces.FilterCondCfg{
+			Operation: "or",
+			SubConds: []*interfaces.FilterCondCfg{
+				{Name: "name", Operation: "==", ValueOptCfg: interfaces.ValueOptCfg{ValueFrom: "const", Value: "alice"}},
+				{Name: "name", Operation: "==", ValueOptCfg: interfaces.ValueOptCfg{ValueFrom: "const", Value: "bob"}},
+			},
+		}
+		cond, err := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
+		So(err, ShouldBeNil)
+		sql, _ := toSQL(c, cond)
+		So(sql, ShouldContainSubstring, " OR ")
+	})
 }
 
-// ===== 带别名列名的 SQL 生成 =====
-
 func TestConvertEqual_AliasColumn(t *testing.T) {
-	c := &MariaDBConnector{}
-	cfg := &interfaces.FilterCondCfg{
-		Name:      "alias_col",
-		Operation: "==",
-		ValueOptCfg: interfaces.ValueOptCfg{
-			ValueFrom: interfaces.ValueFrom_Const,
-			Value:     "test",
-		},
-	}
-	cond, err := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	sql, _ := toSQL(t, c, cond)
-	// OriginalName 是 "t1.col"，应该生成 `t1`.`col`
-	if sql != "`t1`.`col` = ?" {
-		t.Errorf("unexpected SQL: %s", sql)
-	}
+	Convey("Test convert equal alias column", t, func() {
+		c := &MariaDBConnector{}
+		cfg := &interfaces.FilterCondCfg{
+			Name:      "alias_col",
+			Operation: "==",
+			ValueOptCfg: interfaces.ValueOptCfg{
+				ValueFrom: interfaces.ValueFrom_Const,
+				Value:     "test",
+			},
+		}
+		cond, err := filter_condition.NewFilterCondition(context.Background(), cfg, testFieldsMap())
+		So(err, ShouldBeNil)
+		sql, _ := toSQL(c, cond)
+		So(sql, ShouldEqual, "`t1`.`col` = ?")
+	})
 }

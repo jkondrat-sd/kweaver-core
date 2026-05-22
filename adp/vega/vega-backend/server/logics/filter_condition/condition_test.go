@@ -7,13 +7,13 @@ package filter_condition
 
 import (
 	"context"
-	"strings"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 
 	"vega-backend/interfaces"
 )
 
-// 测试用字段映射
 func testFieldsMap() map[string]*interfaces.Property {
 	return map[string]*interfaces.Property{
 		"name":       {Name: "name", Type: interfaces.DataType_String},
@@ -37,464 +37,373 @@ func constCfg(name, op string, value any) *interfaces.FilterCondCfg {
 	}
 }
 
-// ===== NewFilterCondition 工厂函数 =====
+func newTestCondition(cfg *interfaces.FilterCondCfg) (interfaces.FilterCondition, error) {
+	return NewFilterCondition(context.Background(), cfg, testFieldsMap())
+}
 
 func TestNewFilterCondition_NilConfig(t *testing.T) {
-	cond, err := NewFilterCondition(context.Background(), nil, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cond != nil {
-		t.Fatal("expected nil condition for nil config")
-	}
+	Convey("Test NewFilterCondition with nil config", t, func() {
+		cond, err := newTestCondition(nil)
+		So(err, ShouldBeNil)
+		So(cond, ShouldBeNil)
+	})
 }
 
 func TestNewFilterCondition_EmptyConfig(t *testing.T) {
-	cfg := &interfaces.FilterCondCfg{}
-	cond, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cond != nil {
-		t.Fatal("expected nil condition for empty config")
-	}
+	Convey("Test NewFilterCondition with empty config", t, func() {
+		cond, err := newTestCondition(&interfaces.FilterCondCfg{})
+		So(err, ShouldBeNil)
+		So(cond, ShouldBeNil)
+	})
 }
 
 func TestNewFilterCondition_UnsupportedOperation(t *testing.T) {
-	cfg := constCfg("name", "unknown_op", "test")
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for unsupported operation")
-	}
-	if !strings.Contains(err.Error(), "unsupported operation") {
-		t.Errorf("expected 'unsupported operation' error, got: %v", err)
-	}
+	Convey("Test NewFilterCondition rejects unsupported operation", t, func() {
+		_, err := newTestCondition(constCfg("name", "unknown_op", "test"))
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "unsupported operation")
+	})
 }
 
 func TestNewFilterCondition_ValidEqual(t *testing.T) {
-	cfg := constCfg("name", "==", "alice")
-	cond, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cond == nil {
-		t.Fatal("expected non-nil condition")
-	}
-	if cond.GetOperation() != OperationEqual {
-		t.Errorf("expected operation '==', got '%s'", cond.GetOperation())
-	}
+	Convey("Test NewFilterCondition creates equal condition", t, func() {
+		cond, err := newTestCondition(constCfg("name", "==", "alice"))
+		So(err, ShouldBeNil)
+		So(cond, ShouldNotBeNil)
+		So(cond.GetOperation(), ShouldEqual, OperationEqual)
+	})
 }
 
-// ===== IsSlice / IsSameType 工具函数 =====
-
 func TestIsSlice(t *testing.T) {
-	if !IsSlice([]int{1, 2, 3}) {
-		t.Error("expected true for int slice")
-	}
-	if !IsSlice([]string{"a"}) {
-		t.Error("expected true for string slice")
-	}
-	if IsSlice("not a slice") {
-		t.Error("expected false for string")
-	}
-	if IsSlice(42) {
-		t.Error("expected false for int")
-	}
+	Convey("Test IsSlice", t, func() {
+		So(IsSlice([]int{1, 2, 3}), ShouldBeTrue)
+		So(IsSlice([]string{"a"}), ShouldBeTrue)
+		So(IsSlice("not a slice"), ShouldBeFalse)
+		So(IsSlice(42), ShouldBeFalse)
+	})
 }
 
 func TestIsSameType(t *testing.T) {
-	if !IsSameType([]any{}) {
-		t.Error("expected true for empty slice")
-	}
-	if !IsSameType([]any{1, 2, 3}) {
-		t.Error("expected true for same-type slice")
-	}
-	if !IsSameType([]any{"a", "b"}) {
-		t.Error("expected true for string slice")
-	}
-	if IsSameType([]any{1, "two", 3}) {
-		t.Error("expected false for mixed-type slice")
-	}
+	Convey("Test IsSameType", t, func() {
+		So(IsSameType([]any{}), ShouldBeTrue)
+		So(IsSameType([]any{1, 2, 3}), ShouldBeTrue)
+		So(IsSameType([]any{"a", "b"}), ShouldBeTrue)
+		So(IsSameType([]any{1, "two", 3}), ShouldBeFalse)
+	})
 }
 
-// ===== EqualCond =====
-
 func TestEqualCond_Valid(t *testing.T) {
-	cfg := constCfg("name", "==", "alice")
-	cond, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	eq := cond.(*EqualCond)
-	if eq.Lfield.Name != "name" {
-		t.Errorf("expected left field 'name', got '%s'", eq.Lfield.Name)
-	}
-	if eq.Value != "alice" {
-		t.Errorf("expected value 'alice', got '%v'", eq.Value)
-	}
+	Convey("Test EqualCond valid const value", t, func() {
+		cond, err := newTestCondition(constCfg("name", "==", "alice"))
+		So(err, ShouldBeNil)
+		eq := cond.(*EqualCond)
+		So(eq.Lfield.Name, ShouldEqual, "name")
+		So(eq.Value, ShouldEqual, "alice")
+	})
 }
 
 func TestEqualCond_EmptyFieldName(t *testing.T) {
-	cfg := constCfg("", "==", "alice")
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for empty field name")
-	}
-	if !strings.Contains(err.Error(), "left field is empty") {
-		t.Errorf("unexpected error: %v", err)
-	}
+	Convey("Test EqualCond rejects empty field", t, func() {
+		_, err := newTestCondition(constCfg("", "==", "alice"))
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "left field is empty")
+	})
 }
 
 func TestEqualCond_FieldNotFound(t *testing.T) {
-	cfg := constCfg("nonexistent", "==", "alice")
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for unknown field")
-	}
-	if !strings.Contains(err.Error(), "not found") {
-		t.Errorf("unexpected error: %v", err)
-	}
+	Convey("Test EqualCond rejects unknown field", t, func() {
+		_, err := newTestCondition(constCfg("nonexistent", "==", "alice"))
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "not found")
+	})
 }
 
 func TestEqualCond_RejectsArrayValue(t *testing.T) {
-	cfg := constCfg("name", "==", []any{"a", "b"})
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for array value in equal condition")
-	}
-	if !strings.Contains(err.Error(), "single value") {
-		t.Errorf("unexpected error: %v", err)
-	}
+	Convey("Test EqualCond rejects array value", t, func() {
+		_, err := newTestCondition(constCfg("name", "==", []any{"a", "b"}))
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "single value")
+	})
 }
 
 func TestEqualCond_FieldToField(t *testing.T) {
-	cfg := &interfaces.FilterCondCfg{
-		Name:      "name",
-		Operation: "==",
-		ValueOptCfg: interfaces.ValueOptCfg{
-			ValueFrom: interfaces.ValueFrom_Field,
-			Value:     "other_name",
-		},
-	}
-	cond, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	eq := cond.(*EqualCond)
-	if eq.Rfield == nil {
-		t.Fatal("expected right field to be set")
-	}
-	if eq.Rfield.Name != "other_name" {
-		t.Errorf("expected right field 'other_name', got '%s'", eq.Rfield.Name)
-	}
+	Convey("Test EqualCond field to field", t, func() {
+		cfg := &interfaces.FilterCondCfg{
+			Name:      "name",
+			Operation: "==",
+			ValueOptCfg: interfaces.ValueOptCfg{
+				ValueFrom: interfaces.ValueFrom_Field,
+				Value:     "other_name",
+			},
+		}
+		cond, err := newTestCondition(cfg)
+		So(err, ShouldBeNil)
+		eq := cond.(*EqualCond)
+		So(eq.Rfield, ShouldNotBeNil)
+		So(eq.Rfield.Name, ShouldEqual, "other_name")
+	})
 }
 
 func TestEqualCond_FieldToField_RightNotFound(t *testing.T) {
-	cfg := &interfaces.FilterCondCfg{
-		Name:      "name",
-		Operation: "==",
-		ValueOptCfg: interfaces.ValueOptCfg{
-			ValueFrom: interfaces.ValueFrom_Field,
-			Value:     "nonexistent",
-		},
-	}
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for unknown right field")
-	}
-	if !strings.Contains(err.Error(), "right field") {
-		t.Errorf("unexpected error: %v", err)
-	}
+	Convey("Test EqualCond rejects unknown right field", t, func() {
+		cfg := &interfaces.FilterCondCfg{
+			Name:      "name",
+			Operation: "==",
+			ValueOptCfg: interfaces.ValueOptCfg{
+				ValueFrom: interfaces.ValueFrom_Field,
+				Value:     "nonexistent",
+			},
+		}
+		_, err := newTestCondition(cfg)
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "right field")
+	})
 }
 
 func TestEqualCond_AliasOperations(t *testing.T) {
-	// "eq" 是 "==" 的别名
-	cfg := constCfg("name", "eq", "alice")
-	cond, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cond.GetOperation() != OperationEqual {
-		t.Errorf("expected operation '==', got '%s'", cond.GetOperation())
-	}
+	Convey("Test EqualCond alias operation", t, func() {
+		cond, err := newTestCondition(constCfg("name", "eq", "alice"))
+		So(err, ShouldBeNil)
+		So(cond.GetOperation(), ShouldEqual, OperationEqual)
+	})
 }
 
-// ===== InCond =====
-
 func TestInCond_Valid(t *testing.T) {
-	cfg := constCfg("name", "in", []any{"alice", "bob"})
-	cond, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	in := cond.(*InCond)
-	if len(in.Value) != 2 {
-		t.Errorf("expected 2 values, got %d", len(in.Value))
-	}
+	Convey("Test InCond valid", t, func() {
+		cond, err := newTestCondition(constCfg("name", "in", []any{"alice", "bob"}))
+		So(err, ShouldBeNil)
+		in := cond.(*InCond)
+		So(in.Value, ShouldHaveLength, 2)
+	})
 }
 
 func TestInCond_EmptyArray(t *testing.T) {
-	cfg := constCfg("name", "in", []any{})
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for empty array")
-	}
-	if !strings.Contains(err.Error(), "length >= 1") {
-		t.Errorf("unexpected error: %v", err)
-	}
+	Convey("Test InCond rejects empty array", t, func() {
+		_, err := newTestCondition(constCfg("name", "in", []any{}))
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "length >= 1")
+	})
 }
 
 func TestInCond_NonArrayValue(t *testing.T) {
-	cfg := constCfg("name", "in", "single_value")
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for non-array value")
-	}
-	if !strings.Contains(err.Error(), "should be an array") {
-		t.Errorf("unexpected error: %v", err)
-	}
+	Convey("Test InCond rejects non-array value", t, func() {
+		_, err := newTestCondition(constCfg("name", "in", "single_value"))
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "should be an array")
+	})
 }
 
 func TestInCond_RejectsFieldValueFrom(t *testing.T) {
-	cfg := &interfaces.FilterCondCfg{
-		Name:      "name",
-		Operation: "in",
-		ValueOptCfg: interfaces.ValueOptCfg{
-			ValueFrom: interfaces.ValueFrom_Field,
-			Value:     []any{"alice"},
-		},
-	}
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for non-const value_from")
-	}
-	if !strings.Contains(err.Error(), "does not support value_from") {
-		t.Errorf("unexpected error: %v", err)
-	}
+	Convey("Test InCond rejects field value_from", t, func() {
+		cfg := &interfaces.FilterCondCfg{
+			Name:      "name",
+			Operation: "in",
+			ValueOptCfg: interfaces.ValueOptCfg{
+				ValueFrom: interfaces.ValueFrom_Field,
+				Value:     []any{"alice"},
+			},
+		}
+		_, err := newTestCondition(cfg)
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "does not support value_from")
+	})
 }
 
-// ===== LikeCond =====
-
 func TestLikeCond_Valid(t *testing.T) {
-	cfg := constCfg("name", "like", "ali%")
-	cond, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	like := cond.(*LikeCond)
-	if like.Value != "ali%" {
-		t.Errorf("expected value 'ali%%', got '%s'", like.Value)
-	}
+	Convey("Test LikeCond valid", t, func() {
+		cond, err := newTestCondition(constCfg("name", "like", "ali%"))
+		So(err, ShouldBeNil)
+		like := cond.(*LikeCond)
+		So(like.Value, ShouldEqual, "ali%")
+	})
 }
 
 func TestLikeCond_NonStringField(t *testing.T) {
-	cfg := constCfg("age", "like", "test")
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for non-string field")
-	}
-	if !strings.Contains(err.Error(), "not a string field") {
-		t.Errorf("unexpected error: %v", err)
-	}
+	Convey("Test LikeCond rejects non-string field", t, func() {
+		_, err := newTestCondition(constCfg("age", "like", "test"))
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "not a string field")
+	})
 }
 
 func TestLikeCond_NonStringValue(t *testing.T) {
-	cfg := constCfg("name", "like", 123)
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for non-string value")
-	}
-	if !strings.Contains(err.Error(), "not a string value") {
-		t.Errorf("unexpected error: %v", err)
-	}
+	Convey("Test LikeCond rejects non-string value", t, func() {
+		_, err := newTestCondition(constCfg("name", "like", 123))
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "not a string value")
+	})
 }
 
-// ===== RangeCond =====
-
 func TestRangeCond_Valid(t *testing.T) {
-	cfg := constCfg("age", "range", []any{18, 65})
-	cond, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	r := cond.(*RangeCond)
-	if len(r.Value) != 2 {
-		t.Errorf("expected 2 values, got %d", len(r.Value))
-	}
+	Convey("Test RangeCond valid", t, func() {
+		cond, err := newTestCondition(constCfg("age", "range", []any{18, 65}))
+		So(err, ShouldBeNil)
+		r := cond.(*RangeCond)
+		So(r.Value, ShouldHaveLength, 2)
+	})
 }
 
 func TestRangeCond_WrongArrayLength(t *testing.T) {
-	cfg := constCfg("age", "range", []any{18})
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for wrong array length")
-	}
-	if !strings.Contains(err.Error(), "length 2") {
-		t.Errorf("unexpected error: %v", err)
-	}
+	Convey("Test RangeCond rejects wrong array length", t, func() {
+		_, err := newTestCondition(constCfg("age", "range", []any{18}))
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "length 2")
+	})
 }
 
 func TestRangeCond_NonNumericField(t *testing.T) {
-	cfg := constCfg("name", "range", []any{1, 2})
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for non-numeric field")
-	}
-	if !strings.Contains(err.Error(), "not a date/number field") {
-		t.Errorf("unexpected error: %v", err)
-	}
+	Convey("Test RangeCond rejects non-numeric field", t, func() {
+		_, err := newTestCondition(constCfg("name", "range", []any{1, 2}))
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "not a date/number field")
+	})
 }
 
 func TestRangeCond_DateField(t *testing.T) {
-	cfg := constCfg("created_at", "range", []any{"2024-01-01", "2024-12-31"})
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	Convey("Test RangeCond accepts date field", t, func() {
+		_, err := newTestCondition(constCfg("created_at", "range", []any{"2024-01-01", "2024-12-31"}))
+		So(err, ShouldBeNil)
+	})
 }
 
-// ===== AndCond =====
-
 func TestAndCond_Valid(t *testing.T) {
-	cfg := &interfaces.FilterCondCfg{
-		Operation: "and",
-		SubConds: []*interfaces.FilterCondCfg{
-			constCfg("name", "==", "alice"),
-			constCfg("age", ">", 18),
-		},
-	}
-	cond, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	and := cond.(*AndCond)
-	if len(and.SubConds) != 2 {
-		t.Errorf("expected 2 sub-conditions, got %d", len(and.SubConds))
-	}
+	Convey("Test AndCond valid", t, func() {
+		cfg := &interfaces.FilterCondCfg{
+			Operation: "and",
+			SubConds: []*interfaces.FilterCondCfg{
+				constCfg("name", "==", "alice"),
+				constCfg("age", ">", 18),
+			},
+		}
+		cond, err := newTestCondition(cfg)
+		So(err, ShouldBeNil)
+		and := cond.(*AndCond)
+		So(and.SubConds, ShouldHaveLength, 2)
+	})
 }
 
 func TestAndCond_EmptySubConds(t *testing.T) {
-	cfg := &interfaces.FilterCondCfg{
-		Operation: "and",
-		SubConds:  []*interfaces.FilterCondCfg{},
-	}
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for empty sub-conditions")
-	}
-	if !strings.Contains(err.Error(), "size is 0") {
-		t.Errorf("unexpected error: %v", err)
-	}
+	Convey("Test AndCond rejects empty sub conditions", t, func() {
+		_, err := newTestCondition(&interfaces.FilterCondCfg{Operation: "and", SubConds: []*interfaces.FilterCondCfg{}})
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "size is 0")
+	})
 }
 
 func TestAndCond_InvalidSubCond(t *testing.T) {
-	cfg := &interfaces.FilterCondCfg{
-		Operation: "and",
-		SubConds: []*interfaces.FilterCondCfg{
-			constCfg("nonexistent", "==", "test"),
-		},
-	}
-	_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err == nil {
-		t.Fatal("expected error for invalid sub-condition")
-	}
+	Convey("Test AndCond rejects invalid sub condition", t, func() {
+		cfg := &interfaces.FilterCondCfg{
+			Operation: "and",
+			SubConds: []*interfaces.FilterCondCfg{
+				constCfg("nonexistent", "==", "test"),
+			},
+		}
+		_, err := newTestCondition(cfg)
+		So(err, ShouldNotBeNil)
+	})
 }
 
 func TestAndCond_NestedAndOr(t *testing.T) {
-	cfg := &interfaces.FilterCondCfg{
-		Operation: "and",
-		SubConds: []*interfaces.FilterCondCfg{
-			constCfg("name", "==", "alice"),
-			{
-				Operation: "or",
-				SubConds: []*interfaces.FilterCondCfg{
-					constCfg("age", ">", 18),
-					constCfg("age", "<", 65),
+	Convey("Test AndCond supports nested or", t, func() {
+		cfg := &interfaces.FilterCondCfg{
+			Operation: "and",
+			SubConds: []*interfaces.FilterCondCfg{
+				constCfg("name", "==", "alice"),
+				{
+					Operation: "or",
+					SubConds: []*interfaces.FilterCondCfg{
+						constCfg("age", ">", 18),
+						constCfg("age", "<", 65),
+					},
 				},
 			},
-		},
-	}
-	cond, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	and := cond.(*AndCond)
-	if len(and.SubConds) != 2 {
-		t.Errorf("expected 2 sub-conditions, got %d", len(and.SubConds))
-	}
-	if and.SubConds[1].GetOperation() != OperationOr {
-		t.Errorf("expected nested 'or', got '%s'", and.SubConds[1].GetOperation())
-	}
+		}
+		cond, err := newTestCondition(cfg)
+		So(err, ShouldBeNil)
+		and := cond.(*AndCond)
+		So(and.SubConds, ShouldHaveLength, 2)
+		So(and.SubConds[1].GetOperation(), ShouldEqual, OperationOr)
+	})
 }
-
-// ===== 所有操作符注册验证 =====
 
 func TestAllOperationsRegistered(t *testing.T) {
-	expectedOps := []string{
-		"and", "or",
-		"==", "eq", "!=", "not_eq",
-		">", "gt", ">=", "gte", "<", "lt", "<=", "lte",
-		"in", "not_in",
-		"like", "not_like",
-		"contain", "not_contain",
-		"range", "out_range",
-		"exist", "not_exist",
-		"empty", "not_empty",
-		"regex", "match", "match_phrase",
-		"prefix", "not_prefix",
-		"null", "not_null",
-		"true", "false",
-		"before", "current", "between",
-		"knn_vector", "multi_match",
-	}
-
-	for _, op := range expectedOps {
-		if _, exists := OperationMap[op]; !exists {
-			t.Errorf("operation '%s' not registered in OperationMap", op)
-		}
-	}
+	Convey("Test all operations are registered", t, func() {
+		assertOpRegistered("and")
+		assertOpRegistered("or")
+		assertOpRegistered("==")
+		assertOpRegistered("eq")
+		assertOpRegistered("!=")
+		assertOpRegistered("not_eq")
+		assertOpRegistered(">")
+		assertOpRegistered("gt")
+		assertOpRegistered(">=")
+		assertOpRegistered("gte")
+		assertOpRegistered("<")
+		assertOpRegistered("lt")
+		assertOpRegistered("<=")
+		assertOpRegistered("lte")
+		assertOpRegistered("in")
+		assertOpRegistered("not_in")
+		assertOpRegistered("like")
+		assertOpRegistered("not_like")
+		assertOpRegistered("contain")
+		assertOpRegistered("not_contain")
+		assertOpRegistered("range")
+		assertOpRegistered("out_range")
+		assertOpRegistered("exist")
+		assertOpRegistered("not_exist")
+		assertOpRegistered("empty")
+		assertOpRegistered("not_empty")
+		assertOpRegistered("regex")
+		assertOpRegistered("match")
+		assertOpRegistered("match_phrase")
+		assertOpRegistered("prefix")
+		assertOpRegistered("not_prefix")
+		assertOpRegistered("null")
+		assertOpRegistered("not_null")
+		assertOpRegistered("true")
+		assertOpRegistered("false")
+		assertOpRegistered("before")
+		assertOpRegistered("current")
+		assertOpRegistered("between")
+		assertOpRegistered("knn_vector")
+		assertOpRegistered("multi_match")
+	})
 }
 
-// ===== 比较运算符共通测试 =====
+func assertOpRegistered(op string) {
+	_, exists := OperationMap[op]
+	So(exists, ShouldBeTrue)
+}
 
 func TestComparisonOps_EmptyField(t *testing.T) {
-	ops := []string{"==", "!=", ">", ">=", "<", "<="}
-	for _, op := range ops {
-		cfg := constCfg("", op, "test")
-		_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-		if err == nil {
-			t.Errorf("operation '%s': expected error for empty field name", op)
-		}
-	}
+	Convey("Test comparison ops reject empty field", t, func() {
+		assertComparisonEmptyField("==")
+		assertComparisonEmptyField("!=")
+		assertComparisonEmptyField(">")
+		assertComparisonEmptyField(">=")
+		assertComparisonEmptyField("<")
+		assertComparisonEmptyField("<=")
+	})
+}
+
+func assertComparisonEmptyField(op string) {
+	_, err := newTestCondition(constCfg("", op, "test"))
+	So(err, ShouldNotBeNil)
 }
 
 func TestComparisonOps_FieldNotFound(t *testing.T) {
-	// 只测试 == 操作符，因为目前只有 EqualCond 实现了对不存在字段的严格检查
-	ops := []string{"=="}
-	for _, op := range ops {
-		cfg := constCfg("nonexistent", op, "test")
-		_, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-		if err == nil {
-			t.Errorf("operation '%s': expected error for unknown field", op)
-		}
-	}
+	Convey("Test comparison ops reject unknown field", t, func() {
+		_, err := newTestCondition(constCfg("nonexistent", "==", "test"))
+		So(err, ShouldNotBeNil)
+	})
 }
 
-// ===== Null/NotNull/Exist/NotExist (无需 value) =====
-
 func TestNullCond_Valid(t *testing.T) {
-	cfg := &interfaces.FilterCondCfg{
-		Name:      "name",
-		Operation: "null",
-	}
-	cond, err := NewFilterCondition(context.Background(), cfg, testFieldsMap())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cond.GetOperation() != OperationNull {
-		t.Errorf("expected operation 'null', got '%s'", cond.GetOperation())
-	}
-	if cond.NeedValue() {
-		t.Error("null condition should not need value")
-	}
+	Convey("Test NullCond valid", t, func() {
+		cond, err := newTestCondition(&interfaces.FilterCondCfg{Name: "name", Operation: "null"})
+		So(err, ShouldBeNil)
+		So(cond.GetOperation(), ShouldEqual, OperationNull)
+		So(cond.NeedValue(), ShouldBeFalse)
+	})
 }

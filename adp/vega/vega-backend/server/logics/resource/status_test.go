@@ -11,127 +11,96 @@ import (
 	"testing"
 
 	"github.com/kweaver-ai/kweaver-go-lib/rest"
+	. "github.com/smartystreets/goconvey/convey"
 
 	verrors "vega-backend/errors"
 	"vega-backend/interfaces"
 )
 
 func TestEnsureResourceQueryable(t *testing.T) {
-	ctx := context.Background()
+	Convey("Test EnsureResourceQueryable", t, func() {
+		ctx := context.Background()
 
-	cases := []struct {
-		name        string
-		resource    *interfaces.Resource
-		wantWarn    bool
-		wantErr     bool
-		wantErrCode string
-	}{
-		{name: "nil resource passes", resource: nil},
-		{
-			name:     "active passes silently",
-			resource: &interfaces.Resource{ID: "r1", Status: interfaces.ResourceStatusActive},
-		},
-		{
-			name:     "deprecated warns",
-			resource: &interfaces.Resource{ID: "r1", Name: "n1", Status: interfaces.ResourceStatusDeprecated},
-			wantWarn: true,
-		},
-		{
-			name:        "disabled blocks",
-			resource:    &interfaces.Resource{ID: "r1", Status: interfaces.ResourceStatusDisabled},
-			wantErr:     true,
-			wantErrCode: verrors.VegaBackend_Resource_NotQueryable,
-		},
-		{
-			name:        "stale blocks",
-			resource:    &interfaces.Resource{ID: "r1", Status: interfaces.ResourceStatusStale},
-			wantErr:     true,
-			wantErrCode: verrors.VegaBackend_Resource_NotQueryable,
-		},
-		{
-			name:     "unknown status passes (forward compat)",
-			resource: &interfaces.Resource{ID: "r1", Status: "unknown_future_status"},
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			w, err := EnsureResourceQueryable(ctx, tc.resource)
-			if tc.wantErr {
-				if err == nil {
-					t.Fatalf("expected error, got nil")
-				}
-				he, ok := err.(*rest.HTTPError)
-				if !ok {
-					t.Fatalf("expected *rest.HTTPError, got %T", err)
-				}
-				if he.HTTPCode != http.StatusConflict {
-					t.Errorf("expected status 409, got %d", he.HTTPCode)
-				}
-				if he.BaseError.ErrorCode != tc.wantErrCode {
-					t.Errorf("expected error code %q, got %q", tc.wantErrCode, he.BaseError.ErrorCode)
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if tc.wantWarn && w == "" {
-				t.Errorf("expected warning, got empty")
-			}
-			if !tc.wantWarn && w != "" {
-				t.Errorf("expected no warning, got %q", w)
-			}
+		Convey("Nil resource passes", func() {
+			w, err := EnsureResourceQueryable(ctx, nil)
+			So(err, ShouldBeNil)
+			So(w, ShouldBeEmpty)
 		})
-	}
+
+		Convey("Active resource passes silently", func() {
+			w, err := EnsureResourceQueryable(ctx, &interfaces.Resource{ID: "r1", Status: interfaces.ResourceStatusActive})
+			So(err, ShouldBeNil)
+			So(w, ShouldBeEmpty)
+		})
+
+		Convey("Deprecated resource returns a warning", func() {
+			w, err := EnsureResourceQueryable(ctx, &interfaces.Resource{ID: "r1", Name: "n1", Status: interfaces.ResourceStatusDeprecated})
+			So(err, ShouldBeNil)
+			So(w, ShouldNotBeEmpty)
+		})
+
+		Convey("Disabled resource blocks query", func() {
+			_, err := EnsureResourceQueryable(ctx, &interfaces.Resource{ID: "r1", Status: interfaces.ResourceStatusDisabled})
+			SoResourceNotQueryableError(err)
+		})
+
+		Convey("Stale resource blocks query", func() {
+			_, err := EnsureResourceQueryable(ctx, &interfaces.Resource{ID: "r1", Status: interfaces.ResourceStatusStale})
+			SoResourceNotQueryableError(err)
+		})
+
+		Convey("Unknown status passes for forward compatibility", func() {
+			w, err := EnsureResourceQueryable(ctx, &interfaces.Resource{ID: "r1", Status: "unknown_future_status"})
+			So(err, ShouldBeNil)
+			So(w, ShouldBeEmpty)
+		})
+	})
+}
+
+func SoResourceNotQueryableError(err error) {
+	So(err, ShouldNotBeNil)
+	he, ok := err.(*rest.HTTPError)
+	So(ok, ShouldBeTrue)
+	So(he.HTTPCode, ShouldEqual, http.StatusConflict)
+	So(he.BaseError.ErrorCode, ShouldEqual, verrors.VegaBackend_Resource_NotQueryable)
 }
 
 func TestEnsureResourcesQueryable(t *testing.T) {
-	ctx := context.Background()
+	Convey("Test EnsureResourcesQueryable", t, func() {
+		ctx := context.Background()
 
-	t.Run("all active produces no warnings", func(t *testing.T) {
-		ws, err := EnsureResourcesQueryable(ctx, []*interfaces.Resource{
-			{ID: "a", Status: interfaces.ResourceStatusActive},
-			{ID: "b", Status: interfaces.ResourceStatusActive},
+		Convey("All active produces no warnings", func() {
+			ws, err := EnsureResourcesQueryable(ctx, []*interfaces.Resource{
+				{ID: "a", Status: interfaces.ResourceStatusActive},
+				{ID: "b", Status: interfaces.ResourceStatusActive},
+			})
+			So(err, ShouldBeNil)
+			So(ws, ShouldBeEmpty)
 		})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(ws) != 0 {
-			t.Errorf("expected no warnings, got %v", ws)
-		}
-	})
 
-	t.Run("mixed active + deprecated returns deprecated warning", func(t *testing.T) {
-		ws, err := EnsureResourcesQueryable(ctx, []*interfaces.Resource{
-			{ID: "a", Status: interfaces.ResourceStatusActive},
-			{ID: "b", Name: "n", Status: interfaces.ResourceStatusDeprecated},
+		Convey("Mixed active and deprecated returns deprecated warning", func() {
+			ws, err := EnsureResourcesQueryable(ctx, []*interfaces.Resource{
+				{ID: "a", Status: interfaces.ResourceStatusActive},
+				{ID: "b", Name: "n", Status: interfaces.ResourceStatusDeprecated},
+			})
+			So(err, ShouldBeNil)
+			So(ws, ShouldHaveLength, 1)
 		})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(ws) != 1 {
-			t.Fatalf("expected 1 warning, got %d (%v)", len(ws), ws)
-		}
-	})
 
-	t.Run("any disabled in slice fails fast", func(t *testing.T) {
-		_, err := EnsureResourcesQueryable(ctx, []*interfaces.Resource{
-			{ID: "a", Status: interfaces.ResourceStatusActive},
-			{ID: "b", Status: interfaces.ResourceStatusDisabled},
-			{ID: "c", Status: interfaces.ResourceStatusActive},
+		Convey("Any disabled in slice fails fast", func() {
+			_, err := EnsureResourcesQueryable(ctx, []*interfaces.Resource{
+				{ID: "a", Status: interfaces.ResourceStatusActive},
+				{ID: "b", Status: interfaces.ResourceStatusDisabled},
+				{ID: "c", Status: interfaces.ResourceStatusActive},
+			})
+			So(err, ShouldNotBeNil)
 		})
-		if err == nil {
-			t.Fatal("expected error from disabled resource")
-		}
-	})
 
-	t.Run("stale also blocks", func(t *testing.T) {
-		_, err := EnsureResourcesQueryable(ctx, []*interfaces.Resource{
-			{ID: "a", Status: interfaces.ResourceStatusStale},
+		Convey("Stale also blocks", func() {
+			_, err := EnsureResourcesQueryable(ctx, []*interfaces.Resource{
+				{ID: "a", Status: interfaces.ResourceStatusStale},
+			})
+			So(err, ShouldNotBeNil)
 		})
-		if err == nil {
-			t.Fatal("expected error from stale resource")
-		}
 	})
 }

@@ -13,147 +13,141 @@ import (
 
 	"vega-backend/interfaces"
 	vmock "vega-backend/interfaces/mock"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestReconcileTableResourcesMarksNew(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	rs := vmock.NewMockResourceService(ctrl)
-	dh := &DiscoverHandler{rs: rs}
+	Convey("Test reconcileTableResources marks new resources", t, func() {
+		ctrl := gomock.NewController(t)
+		rs := vmock.NewMockResourceService(ctrl)
+		dh := &DiscoverHandler{rs: rs}
 
-	table := &interfaces.TableMeta{Name: "users"}
-	created := &interfaces.Resource{ID: "r1", SourceIdentifier: "users", Status: interfaces.ResourceStatusActive}
-	rs.EXPECT().Create(gomock.Any(), gomock.Any()).Return(created, nil)
-	rs.EXPECT().UpdateDiscoverStatus(gomock.Any(), "r1", interfaces.DiscoverStatusNew).Return(nil)
-	actions := interfaces.ActionsFromDiscoverStrategy(interfaces.DiscoverStrategyFullSync)
+		table := &interfaces.TableMeta{Name: "users"}
+		created := &interfaces.Resource{ID: "r1", SourceIdentifier: "users", Status: interfaces.ResourceStatusActive}
+		rs.EXPECT().Create(gomock.Any(), gomock.Any()).Return(created, nil)
+		rs.EXPECT().UpdateDiscoverStatus(gomock.Any(), "r1", interfaces.DiscoverStatusNew).Return(nil)
+		actions := interfaces.ActionsFromDiscoverStrategy(interfaces.DiscoverStrategyFullSync)
 
-	result, items, err := dh.reconcileTableResources(context.Background(), &interfaces.Catalog{ID: "cat1"},
-		[]*interfaces.TableMeta{table}, nil, &actions)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result.NewCount != 1 {
-		t.Fatalf("expected 1 new resource, got %d", result.NewCount)
-	}
-	if len(items) != 1 || items[0].markAfterEnrich {
-		t.Fatalf("new resources should keep last discover status as new during this scan")
-	}
+		result, items, err := dh.reconcileTableResources(context.Background(), &interfaces.Catalog{ID: "cat1"},
+			[]*interfaces.TableMeta{table}, nil, &actions)
+		So(err, ShouldBeNil)
+		So(result.NewCount, ShouldEqual, 1)
+		So(items, ShouldHaveLength, 1)
+		So(items[0].markAfterEnrich, ShouldBeFalse)
+	})
 }
 
 func TestReconcileTableResourcesRefreshesMissingWhenAlreadyStale(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	rs := vmock.NewMockResourceService(ctrl)
-	dh := &DiscoverHandler{rs: rs}
+	Convey("Test reconcileTableResources refreshes missing status for already stale resources", t, func() {
+		ctrl := gomock.NewController(t)
+		rs := vmock.NewMockResourceService(ctrl)
+		dh := &DiscoverHandler{rs: rs}
 
-	rs.EXPECT().UpdateDiscoverStatus(gomock.Any(), "r1", interfaces.DiscoverStatusMissing).Return(nil)
-	actions := interfaces.ActionsFromDiscoverStrategy(interfaces.DiscoverStrategyFullSync)
+		rs.EXPECT().UpdateDiscoverStatus(gomock.Any(), "r1", interfaces.DiscoverStatusMissing).Return(nil)
+		actions := interfaces.ActionsFromDiscoverStrategy(interfaces.DiscoverStrategyFullSync)
 
-	result, _, err := dh.reconcileTableResources(context.Background(), &interfaces.Catalog{ID: "cat1"}, nil,
-		[]*interfaces.Resource{{
-			ID:               "r1",
-			SourceIdentifier: "users",
-			Category:         interfaces.ResourceCategoryTable,
-			Status:           interfaces.ResourceStatusStale,
-		}}, &actions)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result.StaleCount != 0 {
-		t.Fatalf("already stale resource should not count as newly stale, got %d", result.StaleCount)
-	}
+		result, _, err := dh.reconcileTableResources(context.Background(), &interfaces.Catalog{ID: "cat1"}, nil,
+			[]*interfaces.Resource{{
+				ID:               "r1",
+				SourceIdentifier: "users",
+				Category:         interfaces.ResourceCategoryTable,
+				Status:           interfaces.ResourceStatusStale,
+			}}, &actions)
+		So(err, ShouldBeNil)
+		So(result.StaleCount, ShouldEqual, 0)
+	})
 }
 
 func TestReconcileTableResourcesDoesNotDisableUserDisabledResource(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	rs := vmock.NewMockResourceService(ctrl)
-	dh := &DiscoverHandler{rs: rs}
+	Convey("Test reconcileTableResources does not stale user-disabled resources", t, func() {
+		ctrl := gomock.NewController(t)
+		rs := vmock.NewMockResourceService(ctrl)
+		dh := &DiscoverHandler{rs: rs}
 
-	rs.EXPECT().UpdateDiscoverStatus(gomock.Any(), "r1", interfaces.DiscoverStatusMissing).Return(nil)
-	actions := interfaces.ActionsFromDiscoverStrategy(interfaces.DiscoverStrategyFullSync)
+		rs.EXPECT().UpdateDiscoverStatus(gomock.Any(), "r1", interfaces.DiscoverStatusMissing).Return(nil)
+		actions := interfaces.ActionsFromDiscoverStrategy(interfaces.DiscoverStrategyFullSync)
 
-	result, _, err := dh.reconcileTableResources(context.Background(), &interfaces.Catalog{ID: "cat1"}, nil,
-		[]*interfaces.Resource{{
-			ID:               "r1",
-			SourceIdentifier: "users",
-			Category:         interfaces.ResourceCategoryTable,
-			Status:           interfaces.ResourceStatusDisabled,
-		}}, &actions)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result.StaleCount != 0 {
-		t.Fatalf("disabled resource should not move to stale, got stale count %d", result.StaleCount)
-	}
+		result, _, err := dh.reconcileTableResources(context.Background(), &interfaces.Catalog{ID: "cat1"}, nil,
+			[]*interfaces.Resource{{
+				ID:               "r1",
+				SourceIdentifier: "users",
+				Category:         interfaces.ResourceCategoryTable,
+				Status:           interfaces.ResourceStatusDisabled,
+			}}, &actions)
+		So(err, ShouldBeNil)
+		So(result.StaleCount, ShouldEqual, 0)
+	})
 }
 
 func TestReconcileTableResourcesMarksRestored(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	rs := vmock.NewMockResourceService(ctrl)
-	dh := &DiscoverHandler{rs: rs}
+	Convey("Test reconcileTableResources marks restored resources", t, func() {
+		ctrl := gomock.NewController(t)
+		rs := vmock.NewMockResourceService(ctrl)
+		dh := &DiscoverHandler{rs: rs}
 
-	rs.EXPECT().UpdateStatus(gomock.Any(), "r1", interfaces.ResourceStatusActive, "").Return(nil)
-	rs.EXPECT().UpdateDiscoverStatus(gomock.Any(), "r1", interfaces.DiscoverStatusRestored).Return(nil)
-	actions := interfaces.ActionsFromDiscoverStrategy(interfaces.DiscoverStrategyFullSync)
+		rs.EXPECT().UpdateStatus(gomock.Any(), "r1", interfaces.ResourceStatusActive, "").Return(nil)
+		rs.EXPECT().UpdateDiscoverStatus(gomock.Any(), "r1", interfaces.DiscoverStatusRestored).Return(nil)
+		actions := interfaces.ActionsFromDiscoverStrategy(interfaces.DiscoverStrategyFullSync)
 
-	result, items, err := dh.reconcileTableResources(context.Background(), &interfaces.Catalog{ID: "cat1"},
-		[]*interfaces.TableMeta{{Name: "users"}},
-		[]*interfaces.Resource{{
-			ID:               "r1",
-			SourceIdentifier: "users",
-			Category:         interfaces.ResourceCategoryTable,
-			Status:           interfaces.ResourceStatusStale,
-		}}, &actions)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(items) != 1 || items[0].markAfterEnrich {
-		t.Fatalf("restored resource should keep restored status during this scan")
-	}
-	if result.RestoredCount != 1 || result.UnchangedCount != 0 {
-		t.Fatalf("expected restored=1 unchanged=0, got restored=%d unchanged=%d", result.RestoredCount, result.UnchangedCount)
-	}
+		result, items, err := dh.reconcileTableResources(context.Background(), &interfaces.Catalog{ID: "cat1"},
+			[]*interfaces.TableMeta{{Name: "users"}},
+			[]*interfaces.Resource{{
+				ID:               "r1",
+				SourceIdentifier: "users",
+				Category:         interfaces.ResourceCategoryTable,
+				Status:           interfaces.ResourceStatusStale,
+			}}, &actions)
+		So(err, ShouldBeNil)
+		So(items, ShouldHaveLength, 1)
+		So(items[0].markAfterEnrich, ShouldBeFalse)
+		So(result.RestoredCount, ShouldEqual, 1)
+		So(result.UnchangedCount, ShouldEqual, 0)
+	})
 }
 
 func TestUpdateDiscoverResultForEnrichStatus(t *testing.T) {
-	result := &interfaces.DiscoverResult{}
+	Convey("Test updateDiscoverResultForEnrichStatus", t, func() {
+		result := &interfaces.DiscoverResult{}
 
-	updateDiscoverResultForEnrichStatus(result, interfaces.DiscoverStatusUnchanged)
-	updateDiscoverResultForEnrichStatus(result, interfaces.DiscoverStatusUpdated)
+		updateDiscoverResultForEnrichStatus(result, interfaces.DiscoverStatusUnchanged)
+		updateDiscoverResultForEnrichStatus(result, interfaces.DiscoverStatusUpdated)
 
-	if result.UnchangedCount != 1 || result.UpdatedCount != 1 {
-		t.Fatalf("expected unchanged=1 updated=1, got unchanged=%d updated=%d", result.UnchangedCount, result.UpdatedCount)
-	}
+		So(result.UnchangedCount, ShouldEqual, 1)
+		So(result.UpdatedCount, ShouldEqual, 1)
+	})
 }
 
 func TestSourceSnapshotHashIgnoresDerivedAndUserEditableFields(t *testing.T) {
-	resource := &interfaces.Resource{
-		Description:      "user text",
-		Tags:             []string{"a"},
-		Name:             "users",
-		SchemaDefinition: []*interfaces.Property{{Name: "id", Type: "int", Description: "derived"}},
-		SourceMetadata:   map[string]any{"original_name": "users"},
-	}
-	before := sourceSnapshotHash(resource)
+	Convey("Test sourceSnapshotHash ignores derived and user-editable fields", t, func() {
+		resource := &interfaces.Resource{
+			Description:      "user text",
+			Tags:             []string{"a"},
+			Name:             "users",
+			SchemaDefinition: []*interfaces.Property{{Name: "id", Type: "int", Description: "derived"}},
+			SourceMetadata:   map[string]any{"original_name": "users"},
+		}
+		before := sourceSnapshotHash(resource)
 
-	resource.Description = "edited by user"
-	resource.Tags = []string{"b"}
-	resource.Name = "display name"
-	resource.SchemaDefinition = append(resource.SchemaDefinition, &interfaces.Property{Name: "name", Type: "string"})
+		resource.Description = "edited by user"
+		resource.Tags = []string{"b"}
+		resource.Name = "display name"
+		resource.SchemaDefinition = append(resource.SchemaDefinition, &interfaces.Property{Name: "name", Type: "string"})
 
-	if got := sourceSnapshotHash(resource); got != before {
-		t.Fatalf("expected non-source-metadata fields to be ignored, got %s want %s", got, before)
-	}
+		So(sourceSnapshotHash(resource), ShouldEqual, before)
+	})
 }
 
 func TestSourceSnapshotHashChangesForSourceMetadata(t *testing.T) {
-	resource := &interfaces.Resource{
-		SchemaDefinition: []*interfaces.Property{{Name: "id", Type: "int"}},
-		SourceMetadata:   map[string]any{"original_name": "users", "columns": []interfaces.TableColumnMeta{{Name: "id", Type: "int"}}},
-	}
-	before := sourceSnapshotHash(resource)
+	Convey("Test sourceSnapshotHash changes for source metadata", t, func() {
+		resource := &interfaces.Resource{
+			SchemaDefinition: []*interfaces.Property{{Name: "id", Type: "int"}},
+			SourceMetadata:   map[string]any{"original_name": "users", "columns": []interfaces.TableColumnMeta{{Name: "id", Type: "int"}}},
+		}
+		before := sourceSnapshotHash(resource)
 
-	resource.SourceMetadata["columns"] = []interfaces.TableColumnMeta{{Name: "id", Type: "int"}, {Name: "name", Type: "varchar"}}
+		resource.SourceMetadata["columns"] = []interfaces.TableColumnMeta{{Name: "id", Type: "int"}, {Name: "name", Type: "varchar"}}
 
-	if got := sourceSnapshotHash(resource); got == before {
-		t.Fatalf("expected source snapshot hash to change when source metadata changes")
-	}
+		So(sourceSnapshotHash(resource), ShouldNotEqual, before)
+	})
 }

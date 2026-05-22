@@ -9,33 +9,48 @@ import (
 	"testing"
 
 	"vega-backend/interfaces"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestPostgresqlMapType(t *testing.T) {
-	c := &PostgresqlConnector{}
+	Convey("Test Postgresql MapType", t, func() {
+		c := &PostgresqlConnector{}
 
-	cases := []struct {
-		in   string
-		want string
-	}{
-		// 已知标量类型
-		{"int4", interfaces.DataType_Integer},
-		{"INT4", interfaces.DataType_Integer},
-		{"  text  ", interfaces.DataType_Text},
-		{"jsonb", interfaces.DataType_Json},
-		// 数组类型：udt_name 形式（带下划线前缀）—— 不识别
-		{"_int4", interfaces.DataType_Other},
-		{"_text", interfaces.DataType_Other},
-		// data_type 形式
-		{"ARRAY", interfaces.DataType_Other},
-		// 完全未知
-		{"unknown_type", interfaces.DataType_Other},
-		{"", interfaces.DataType_Other},
-	}
+		Convey("Known int4 scalar maps to integer", func() {
+			So(c.MapType("int4"), ShouldEqual, interfaces.DataType_Integer)
+		})
 
-	for _, tc := range cases {
-		if got := c.MapType(tc.in); got != tc.want {
-			t.Errorf("MapType(%q) = %q, want %q", tc.in, got, tc.want)
-		}
-	}
+		Convey("Known INT4 scalar maps to integer", func() {
+			So(c.MapType("INT4"), ShouldEqual, interfaces.DataType_Integer)
+		})
+
+		Convey("Trimmed text scalar maps to text", func() {
+			So(c.MapType("  text  "), ShouldEqual, interfaces.DataType_Text)
+		})
+
+		Convey("Known jsonb scalar maps to json", func() {
+			So(c.MapType("jsonb"), ShouldEqual, interfaces.DataType_Json)
+		})
+
+		Convey("UDT int array is not recognized", func() {
+			So(c.MapType("_int4"), ShouldEqual, interfaces.DataType_Other)
+		})
+
+		Convey("UDT text array is not recognized", func() {
+			So(c.MapType("_text"), ShouldEqual, interfaces.DataType_Other)
+		})
+
+		Convey("Data_type array is not recognized", func() {
+			So(c.MapType("ARRAY"), ShouldEqual, interfaces.DataType_Other)
+		})
+
+		Convey("Unknown type maps to other", func() {
+			So(c.MapType("unknown_type"), ShouldEqual, interfaces.DataType_Other)
+		})
+
+		Convey("Empty type maps to other", func() {
+			So(c.MapType(""), ShouldEqual, interfaces.DataType_Other)
+		})
+	})
 }

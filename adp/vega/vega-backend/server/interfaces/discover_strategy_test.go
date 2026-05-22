@@ -5,60 +5,64 @@
 
 package interfaces
 
-import "testing"
+import (
+	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
+)
 
 func TestIsValidDiscoverStrategy(t *testing.T) {
-	for _, strategy := range []string{
-		DiscoverStrategyFullSync,
-		DiscoverStrategyCreateOnly,
-		DiscoverStrategyCleanupOnly,
-	} {
-		if !IsValidDiscoverStrategy(strategy) {
-			t.Fatalf("expected strategy %q to be valid", strategy)
-		}
-	}
+	Convey("Test IsValidDiscoverStrategy", t, func() {
+		Convey("Full sync strategy is valid", func() {
+			So(IsValidDiscoverStrategy(DiscoverStrategyFullSync), ShouldBeTrue)
+		})
 
-	if IsValidDiscoverStrategy("unknown") {
-		t.Fatal("expected unknown strategy to be invalid")
-	}
-	if IsValidDiscoverStrategy("") {
-		t.Fatal("expected empty strategy to be invalid before driver normalization")
-	}
+		Convey("Create only strategy is valid", func() {
+			So(IsValidDiscoverStrategy(DiscoverStrategyCreateOnly), ShouldBeTrue)
+		})
+
+		Convey("Cleanup only strategy is valid", func() {
+			So(IsValidDiscoverStrategy(DiscoverStrategyCleanupOnly), ShouldBeTrue)
+		})
+
+		Convey("Unknown strategy is invalid", func() {
+			So(IsValidDiscoverStrategy("unknown"), ShouldBeFalse)
+		})
+
+		Convey("Empty strategy is invalid before driver normalization", func() {
+			So(IsValidDiscoverStrategy(""), ShouldBeFalse)
+		})
+	})
 }
 
 func TestActionsFromDiscoverStrategy(t *testing.T) {
-	tests := []struct {
-		name     string
-		strategy string
-		want     DiscoverActions
-	}{
-		{
-			name:     "full sync",
-			strategy: DiscoverStrategyFullSync,
-			want:     DiscoverActions{Create: true, Refresh: true, MarkStale: true},
-		},
-		{
-			name:     "empty defaults to full sync",
-			strategy: "",
-			want:     DiscoverActions{Create: true, Refresh: true, MarkStale: true},
-		},
-		{
-			name:     "create only",
-			strategy: DiscoverStrategyCreateOnly,
-			want:     DiscoverActions{Create: true},
-		},
-		{
-			name:     "cleanup only",
-			strategy: DiscoverStrategyCleanupOnly,
-			want:     DiscoverActions{MarkStale: true},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := ActionsFromDiscoverStrategy(tt.strategy); got != tt.want {
-				t.Fatalf("expected %+v, got %+v", tt.want, got)
-			}
+	Convey("Test ActionsFromDiscoverStrategy", t, func() {
+		Convey("Full sync enables create, refresh, and mark stale", func() {
+			actions := ActionsFromDiscoverStrategy(DiscoverStrategyFullSync)
+			So(actions.Create, ShouldBeTrue)
+			So(actions.Refresh, ShouldBeTrue)
+			So(actions.MarkStale, ShouldBeTrue)
 		})
-	}
+
+		Convey("Empty strategy defaults to full sync", func() {
+			actions := ActionsFromDiscoverStrategy("")
+			So(actions.Create, ShouldBeTrue)
+			So(actions.Refresh, ShouldBeTrue)
+			So(actions.MarkStale, ShouldBeTrue)
+		})
+
+		Convey("Create only enables create", func() {
+			actions := ActionsFromDiscoverStrategy(DiscoverStrategyCreateOnly)
+			So(actions.Create, ShouldBeTrue)
+			So(actions.Refresh, ShouldBeFalse)
+			So(actions.MarkStale, ShouldBeFalse)
+		})
+
+		Convey("Cleanup only enables mark stale", func() {
+			actions := ActionsFromDiscoverStrategy(DiscoverStrategyCleanupOnly)
+			So(actions.Create, ShouldBeFalse)
+			So(actions.Refresh, ShouldBeFalse)
+			So(actions.MarkStale, ShouldBeTrue)
+		})
+	})
 }
