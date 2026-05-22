@@ -109,7 +109,7 @@ func TestDiscoverScheduleColumns(t *testing.T) {
 
 func TestScanDiscoverSchedule(t *testing.T) {
 	Convey("Test scanDiscoverSchedule", t, func() {
-		Convey("Should scan discover schedule", func() {
+		Convey("scans discover schedule fields", func() {
 			scanner := fakeDiscoverScheduleScanner{values: []any{
 				"schedule-1",
 				"daily discovery",
@@ -138,13 +138,13 @@ func TestScanDiscoverSchedule(t *testing.T) {
 			So(schedule.Updater, ShouldResemble, interfaces.AccountInfo{ID: "app-1", Type: interfaces.ACCESSOR_TYPE_APP})
 		})
 
-		Convey("Should return sql no rows error", func() {
+		Convey("propagates sql.ErrNoRows", func() {
 			schedule, err := scanDiscoverSchedule(fakeDiscoverScheduleScanner{err: sql.ErrNoRows})
 			So(err, ShouldEqual, sql.ErrNoRows)
 			So(schedule, ShouldBeNil)
 		})
 
-		Convey("Should return generic scan error", func() {
+		Convey("propagates generic scan error", func() {
 			expectedErr := errors.New("scan failed")
 			schedule, err := scanDiscoverSchedule(fakeDiscoverScheduleScanner{err: expectedErr})
 			So(err, ShouldEqual, expectedErr)
@@ -157,13 +157,13 @@ func TestCalculateNextRun(t *testing.T) {
 	Convey("Test calculateNextRun", t, func() {
 		from := time.Date(2026, 5, 22, 10, 15, 0, 0, time.UTC)
 
-		Convey("Should calculate next run for valid cron", func() {
+		Convey("calculates next run for valid cron", func() {
 			next, err := calculateNextRun("0 * * * *", from)
 			So(err, ShouldBeNil)
 			So(next, ShouldResemble, time.Date(2026, 5, 22, 11, 0, 0, 0, time.UTC))
 		})
 
-		Convey("Should return error for invalid cron", func() {
+		Convey("returns error for invalid cron", func() {
 			next, err := calculateNextRun("invalid", from)
 			So(err, ShouldNotBeNil)
 			So(next.IsZero(), ShouldBeTrue)
@@ -171,13 +171,13 @@ func TestCalculateNextRun(t *testing.T) {
 	})
 }
 
-func Test_DiscoverScheduleAccess_Create(t *testing.T) {
-	Convey("test Create\n", t, func() {
+func TestDiscoverScheduleAccess_Create(t *testing.T) {
+	Convey("Test discoverScheduleAccess.Create", t, func() {
 		dsa, smock := MockNewDiscoverScheduleAccess(t)
 		schedule := testDiscoverSchedule()
 		sqlStr := fmt.Sprintf("INSERT INTO %s (f_id,f_name,f_catalog_id,f_cron_expr,f_start_time,f_end_time,f_enabled,f_strategy,f_last_run,f_next_run,f_creator,f_creator_type,f_create_time) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", DISCOVER_SCHEDULE_TABLE_NAME)
 
-		Convey("Create Success\n", func() {
+		Convey("creates schedule successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs(
 				schedule.ID,
 				schedule.Name,
@@ -202,7 +202,7 @@ func Test_DiscoverScheduleAccess_Create(t *testing.T) {
 			}
 		})
 
-		Convey("Create invalid cron\n", func() {
+		Convey("rejects invalid cron expression", func() {
 			schedule.CronExpr = "invalid"
 			err := dsa.Create(context.Background(), schedule)
 			So(err, ShouldNotBeNil)
@@ -214,12 +214,12 @@ func Test_DiscoverScheduleAccess_Create(t *testing.T) {
 	})
 }
 
-func Test_DiscoverScheduleAccess_GetByID(t *testing.T) {
-	Convey("test GetByID\n", t, func() {
+func TestDiscoverScheduleAccess_GetByID(t *testing.T) {
+	Convey("Test discoverScheduleAccess.GetByID", t, func() {
 		dsa, smock := MockNewDiscoverScheduleAccess(t)
 		sqlStr := fmt.Sprintf("SELECT f_id, f_name, f_catalog_id, f_cron_expr, f_start_time, f_end_time, f_enabled, f_strategy, f_last_run, f_next_run, f_creator, f_creator_type, f_create_time, f_updater, f_updater_type, f_update_time FROM %s WHERE f_id = ?", DISCOVER_SCHEDULE_TABLE_NAME)
 
-		Convey("GetByID Success\n", func() {
+		Convey("returns schedule on success", func() {
 			smock.ExpectQuery(sqlStr).WithArgs("schedule-1").WillReturnRows(mockDiscoverScheduleRows())
 
 			schedule, err := dsa.GetByID(context.Background(), "schedule-1")
@@ -232,7 +232,7 @@ func Test_DiscoverScheduleAccess_GetByID(t *testing.T) {
 			}
 		})
 
-		Convey("GetByID Success no row\n", func() {
+		Convey("returns nil when no row", func() {
 			smock.ExpectQuery(sqlStr).WithArgs("missing").WillReturnError(sql.ErrNoRows)
 
 			schedule, err := dsa.GetByID(context.Background(), "missing")
@@ -246,12 +246,12 @@ func Test_DiscoverScheduleAccess_GetByID(t *testing.T) {
 	})
 }
 
-func Test_DiscoverScheduleAccess_Disable(t *testing.T) {
-	Convey("test Disable\n", t, func() {
+func TestDiscoverScheduleAccess_Disable(t *testing.T) {
+	Convey("Test discoverScheduleAccess.Disable", t, func() {
 		dsa, smock := MockNewDiscoverScheduleAccess(t)
 		sqlStr := fmt.Sprintf("UPDATE %s SET f_enabled = ? WHERE f_id = ?", DISCOVER_SCHEDULE_TABLE_NAME)
 
-		Convey("Disable Success\n", func() {
+		Convey("disables schedule successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs(0, "schedule-1").WillReturnResult(sqlmock.NewResult(0, 1))
 
 			err := dsa.Disable(context.Background(), "schedule-1")
@@ -264,12 +264,12 @@ func Test_DiscoverScheduleAccess_Disable(t *testing.T) {
 	})
 }
 
-func Test_DiscoverScheduleAccess_Delete(t *testing.T) {
-	Convey("test Delete\n", t, func() {
+func TestDiscoverScheduleAccess_Delete(t *testing.T) {
+	Convey("Test discoverScheduleAccess.Delete", t, func() {
 		dsa, smock := MockNewDiscoverScheduleAccess(t)
 		sqlStr := fmt.Sprintf("DELETE FROM %s WHERE f_id = ?", DISCOVER_SCHEDULE_TABLE_NAME)
 
-		Convey("Delete Success\n", func() {
+		Convey("deletes successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs("schedule-1").WillReturnResult(sqlmock.NewResult(0, 1))
 
 			err := dsa.Delete(context.Background(), "schedule-1")
@@ -280,7 +280,7 @@ func Test_DiscoverScheduleAccess_Delete(t *testing.T) {
 			}
 		})
 
-		Convey("Delete failed\n", func() {
+		Convey("propagates db error", func() {
 			expectedErr := errors.New("some error")
 			smock.ExpectExec(sqlStr).WithArgs("schedule-1").WillReturnError(expectedErr)
 

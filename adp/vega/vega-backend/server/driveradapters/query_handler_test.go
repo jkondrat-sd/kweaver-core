@@ -13,8 +13,8 @@ import (
 	"vega-backend/interfaces"
 )
 
-func Test_QueryRestHandler_RawQueryByInValidation(t *testing.T) {
-	Convey("Test QueryHandler RawQueryByIn validation\n", t, func() {
+func TestQueryRestHandler_RawQueryByInValidation(t *testing.T) {
+	Convey("Test queryRestHandler.RawQueryByIn validation", t, func() {
 		restore := setGinMode()
 		defer restore()
 

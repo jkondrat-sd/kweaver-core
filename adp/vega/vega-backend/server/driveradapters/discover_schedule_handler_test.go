@@ -20,8 +20,8 @@ import (
 	vmock "vega-backend/interfaces/mock"
 )
 
-func Test_DiscoverScheduleRestHandler_ListDiscoverSchedules(t *testing.T) {
-	Convey("Test DiscoverScheduleHandler ListDiscoverSchedules\n", t, func() {
+func TestDiscoverScheduleRestHandler_ListDiscoverSchedules(t *testing.T) {
+	Convey("Test discoverScheduleRestHandler.ListDiscoverSchedules", t, func() {
 		test := setGinMode()
 		defer test()
 
@@ -37,7 +37,7 @@ func Test_DiscoverScheduleRestHandler_ListDiscoverSchedules(t *testing.T) {
 
 		url := "/api/vega-backend/in/v1/discover-schedules"
 
-		Convey("Invalid offset\n", func() {
+		Convey("Invalid offset", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?offset=-1", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -46,7 +46,7 @@ func Test_DiscoverScheduleRestHandler_ListDiscoverSchedules(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.InvalidParameter.Offset")
 		})
 
-		Convey("Invalid offset non-numeric\n", func() {
+		Convey("Invalid offset non-numeric", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?offset=abc", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -55,7 +55,7 @@ func Test_DiscoverScheduleRestHandler_ListDiscoverSchedules(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.InvalidParameter.Offset")
 		})
 
-		Convey("Invalid limit exceeds max\n", func() {
+		Convey("Invalid limit exceeds max", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?limit=99999999", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -64,7 +64,7 @@ func Test_DiscoverScheduleRestHandler_ListDiscoverSchedules(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.InvalidParameter.Limit")
 		})
 
-		Convey("Invalid sort field\n", func() {
+		Convey("Invalid sort field", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?sort=unknown_field", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -73,7 +73,7 @@ func Test_DiscoverScheduleRestHandler_ListDiscoverSchedules(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.InvalidParameter.Sort")
 		})
 
-		Convey("Invalid direction\n", func() {
+		Convey("Invalid direction", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?direction=foo", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -82,7 +82,7 @@ func Test_DiscoverScheduleRestHandler_ListDiscoverSchedules(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.InvalidParameter.Direction")
 		})
 
-		Convey("Success with default pagination\n", func() {
+		Convey("Success with default pagination", func() {
 			dss.EXPECT().List(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, params interfaces.DiscoverScheduleQueryParams) ([]*interfaces.DiscoverSchedule, int64, error) {
 					So(params.Offset, ShouldEqual, 0)
@@ -99,7 +99,7 @@ func Test_DiscoverScheduleRestHandler_ListDiscoverSchedules(t *testing.T) {
 			So(w.Result().StatusCode, ShouldEqual, http.StatusOK)
 		})
 
-		Convey("Success with explicit sort and direction\n", func() {
+		Convey("Success with explicit sort and direction", func() {
 			dss.EXPECT().List(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, params interfaces.DiscoverScheduleQueryParams) ([]*interfaces.DiscoverSchedule, int64, error) {
 					So(params.Sort, ShouldEqual, "f_next_run")
@@ -116,7 +116,7 @@ func Test_DiscoverScheduleRestHandler_ListDiscoverSchedules(t *testing.T) {
 			So(w.Result().StatusCode, ShouldEqual, http.StatusOK)
 		})
 
-		Convey("Success with catalog_id and enabled filters preserved\n", func() {
+		Convey("Success with catalog_id and enabled filters preserved", func() {
 			dss.EXPECT().List(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, params interfaces.DiscoverScheduleQueryParams) ([]*interfaces.DiscoverSchedule, int64, error) {
 					So(params.CatalogID, ShouldEqual, "cat-1")

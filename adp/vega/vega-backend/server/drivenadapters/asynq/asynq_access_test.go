@@ -9,9 +9,9 @@ import (
 	"vega-backend/common"
 )
 
-func Test_asynqAccess_getRedisClientOpt(t *testing.T) {
-	Convey("Test getRedisClientOpt", t, func() {
-		Convey("Should use standalone redis address", func() {
+func TestAsynqAccess_getRedisClientOpt(t *testing.T) {
+	Convey("Test asynqAccess.getRedisClientOpt", t, func() {
+		Convey("uses standalone redis address", func() {
 			aqa := &asynqAccess{appSetting: &common.AppSetting{RedisSetting: common.RedisSetting{
 				ConnectType: "standalone",
 				Host:        "redis",
@@ -28,7 +28,7 @@ func Test_asynqAccess_getRedisClientOpt(t *testing.T) {
 			So(clientOpt.Password, ShouldEqual, "pass")
 		})
 
-		Convey("Should use cluster setting as redis client address", func() {
+		Convey("uses cluster setting as redis client address", func() {
 			aqa := &asynqAccess{appSetting: &common.AppSetting{RedisSetting: common.RedisSetting{
 				ConnectType: "cluster",
 				Host:        "cluster-redis",
@@ -41,7 +41,7 @@ func Test_asynqAccess_getRedisClientOpt(t *testing.T) {
 			So(clientOpt.Addr, ShouldEqual, "cluster-redis:6380")
 		})
 
-		Convey("Should use master address in master-slave mode", func() {
+		Convey("uses master address in master-slave mode", func() {
 			aqa := &asynqAccess{appSetting: &common.AppSetting{RedisSetting: common.RedisSetting{
 				ConnectType: "master-slave",
 				MasterHost:  "master",
@@ -54,7 +54,7 @@ func Test_asynqAccess_getRedisClientOpt(t *testing.T) {
 			So(clientOpt.Addr, ShouldEqual, "master:6381")
 		})
 
-		Convey("Should use sentinel failover options", func() {
+		Convey("uses sentinel failover options", func() {
 			aqa := &asynqAccess{appSetting: &common.AppSetting{RedisSetting: common.RedisSetting{
 				ConnectType:      "sentinel",
 				Username:         "redis-user",
@@ -77,7 +77,7 @@ func Test_asynqAccess_getRedisClientOpt(t *testing.T) {
 			So(failoverOpt.MasterName, ShouldEqual, "mymaster")
 		})
 
-		Convey("Should fall back to standalone options for unknown connect type", func() {
+		Convey("falls back to standalone options for unknown connect type", func() {
 			aqa := &asynqAccess{appSetting: &common.AppSetting{RedisSetting: common.RedisSetting{
 				ConnectType: "unknown",
 				Host:        "fallback",

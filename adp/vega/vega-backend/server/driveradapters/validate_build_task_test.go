@@ -14,16 +14,16 @@ import (
 	"vega-backend/interfaces"
 )
 
-func Test_ValidateBuildTaskQueryParams(t *testing.T) {
-	Convey("Test ValidateBuildTaskQueryParams\n", t, func() {
+func TestValidateBuildTaskQueryParams(t *testing.T) {
+	Convey("Test ValidateBuildTaskQueryParams", t, func() {
 		ctx := context.Background()
 
-		Convey("Valid empty params\n", func() {
+		Convey("Valid empty params", func() {
 			err := ValidateBuildTaskQueryParams(ctx, interfaces.BuildTasksQueryParams{})
 			So(err, ShouldBeNil)
 		})
 
-		Convey("Valid status and mode\n", func() {
+		Convey("Valid status and mode", func() {
 			err := ValidateBuildTaskQueryParams(ctx, interfaces.BuildTasksQueryParams{
 				Status: interfaces.BuildTaskStatusCompleted,
 				Mode:   interfaces.BuildTaskModeBatch,
@@ -31,14 +31,14 @@ func Test_ValidateBuildTaskQueryParams(t *testing.T) {
 			So(err, ShouldBeNil)
 		})
 
-		Convey("Invalid status\n", func() {
+		Convey("Invalid status", func() {
 			err := ValidateBuildTaskQueryParams(ctx, interfaces.BuildTasksQueryParams{
 				Status: "unknown",
 			})
 			So(err, ShouldNotBeNil)
 		})
 
-		Convey("Invalid mode\n", func() {
+		Convey("Invalid mode", func() {
 			err := ValidateBuildTaskQueryParams(ctx, interfaces.BuildTasksQueryParams{
 				Mode: "unknown",
 			})

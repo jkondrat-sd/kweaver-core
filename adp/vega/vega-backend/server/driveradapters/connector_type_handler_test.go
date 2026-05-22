@@ -23,8 +23,8 @@ import (
 	vmock "vega-backend/interfaces/mock"
 )
 
-func Test_ConnectorTypeRestHandler_UpdateConnectorType(t *testing.T) {
-	Convey("Test ConnectorTypeHandler UpdateConnectorType\n", t, func() {
+func TestConnectorTypeRestHandler_UpdateConnectorType(t *testing.T) {
+	Convey("Test connectorTypeRestHandler.UpdateConnectorType", t, func() {
 		test := setGinMode()
 		defer test()
 
@@ -45,7 +45,7 @@ func Test_ConnectorTypeRestHandler_UpdateConnectorType(t *testing.T) {
 		tp := "mysql"
 		url := "/api/vega-backend/v1/connector-types/" + tp
 
-		Convey("Body type mismatch\n", func() {
+		Convey("Body type mismatch", func() {
 			reqData := interfaces.ConnectorTypeReq{
 				Type:     "postgres",
 				Name:     "MySQL",
@@ -62,7 +62,7 @@ func Test_ConnectorTypeRestHandler_UpdateConnectorType(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.ConnectorType.TypeMismatch")
 		})
 
-		Convey("Success update connector type\n", func() {
+		Convey("Success update connector type", func() {
 			reqData := interfaces.ConnectorTypeReq{
 				Type:     tp,
 				Name:     "MySQL",
@@ -87,7 +87,7 @@ func Test_ConnectorTypeRestHandler_UpdateConnectorType(t *testing.T) {
 			So(w.Result().StatusCode, ShouldEqual, http.StatusNoContent)
 		})
 
-		Convey("Success update fileset connector type\n", func() {
+		Convey("Success update fileset connector type", func() {
 			reqData := interfaces.ConnectorTypeReq{
 				Type:     tp,
 				Name:     "AnyShare",
@@ -112,7 +112,7 @@ func Test_ConnectorTypeRestHandler_UpdateConnectorType(t *testing.T) {
 			So(w.Result().StatusCode, ShouldEqual, http.StatusNoContent)
 		})
 
-		Convey("Body type omitted\n", func() {
+		Convey("Body type omitted", func() {
 			reqData := map[string]any{
 				"name":     "MySQL",
 				"mode":     interfaces.ConnectorModeLocal,
@@ -130,8 +130,8 @@ func Test_ConnectorTypeRestHandler_UpdateConnectorType(t *testing.T) {
 	})
 }
 
-func Test_ConnectorTypeRestHandler_ListConnectorTypes(t *testing.T) {
-	Convey("Test ConnectorTypeHandler ListConnectorTypes\n", t, func() {
+func TestConnectorTypeRestHandler_ListConnectorTypes(t *testing.T) {
+	Convey("Test connectorTypeRestHandler.ListConnectorTypes", t, func() {
 		test := setGinMode()
 		defer test()
 
@@ -151,7 +151,7 @@ func Test_ConnectorTypeRestHandler_ListConnectorTypes(t *testing.T) {
 
 		url := "/api/vega-backend/v1/connector-types"
 
-		Convey("Invalid enabled\n", func() {
+		Convey("Invalid enabled", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?enabled=maybe", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -161,7 +161,7 @@ func Test_ConnectorTypeRestHandler_ListConnectorTypes(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "invalid enabled: maybe")
 		})
 
-		Convey("Invalid mode\n", func() {
+		Convey("Invalid mode", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?mode=unknown", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -171,7 +171,7 @@ func Test_ConnectorTypeRestHandler_ListConnectorTypes(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "invalid mode: unknown")
 		})
 
-		Convey("Invalid category\n", func() {
+		Convey("Invalid category", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?category=unknown", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -181,7 +181,7 @@ func Test_ConnectorTypeRestHandler_ListConnectorTypes(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "invalid category: unknown")
 		})
 
-		Convey("Success list connector types with name mode category and enabled\n", func() {
+		Convey("Success list connector types with name mode category and enabled", func() {
 			cts.EXPECT().List(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, params interfaces.ConnectorTypesQueryParams) ([]*interfaces.ConnectorType, int64, error) {
 					So(params.Name, ShouldEqual, "share")

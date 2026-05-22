@@ -22,12 +22,12 @@ func MockNewResourceAccess(t *testing.T) (*resourceAccess, sqlmock.Sqlmock) {
 	return &resourceAccess{appSetting: &common.AppSetting{}, db: db}, smock
 }
 
-func Test_ResourceAccess_UpdateStatus(t *testing.T) {
-	Convey("test UpdateStatus\n", t, func() {
+func TestResourceAccess_UpdateStatus(t *testing.T) {
+	Convey("Test resourceAccess.UpdateStatus", t, func() {
 		ra, smock := MockNewResourceAccess(t)
 		sqlStr := fmt.Sprintf("UPDATE %s SET f_status = ?, f_status_message = ? WHERE f_id = ?", RESOURCE_TABLE_NAME)
 
-		Convey("UpdateStatus Success\n", func() {
+		Convey("updates status successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs(interfaces.ResourceStatusActive, "ok", "resource-1").
 				WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -39,7 +39,7 @@ func Test_ResourceAccess_UpdateStatus(t *testing.T) {
 			}
 		})
 
-		Convey("UpdateStatus Failed\n", func() {
+		Convey("propagates db error", func() {
 			expectedErr := errors.New("some error")
 			smock.ExpectExec(sqlStr).WithArgs(interfaces.ResourceStatusActive, "ok", "resource-1").WillReturnError(expectedErr)
 
@@ -53,12 +53,12 @@ func Test_ResourceAccess_UpdateStatus(t *testing.T) {
 	})
 }
 
-func Test_ResourceAccess_UpdateDiscoverStatus(t *testing.T) {
-	Convey("test UpdateDiscoverStatus\n", t, func() {
+func TestResourceAccess_UpdateDiscoverStatus(t *testing.T) {
+	Convey("Test resourceAccess.UpdateDiscoverStatus", t, func() {
 		ra, smock := MockNewResourceAccess(t)
 		sqlStr := fmt.Sprintf("UPDATE %s SET f_last_discover_status = ? WHERE f_id = ?", RESOURCE_TABLE_NAME)
 
-		Convey("UpdateDiscoverStatus Success\n", func() {
+		Convey("updates discover status successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs(interfaces.DiscoverStatusUpdated, "resource-1").WillReturnResult(sqlmock.NewResult(0, 1))
 
 			err := ra.UpdateDiscoverStatus(context.Background(), "resource-1", interfaces.DiscoverStatusUpdated)
@@ -71,12 +71,12 @@ func Test_ResourceAccess_UpdateDiscoverStatus(t *testing.T) {
 	})
 }
 
-func Test_ResourceAccess_CheckExistByCategories(t *testing.T) {
-	Convey("test CheckExistByCategories\n", t, func() {
+func TestResourceAccess_CheckExistByCategories(t *testing.T) {
+	Convey("Test resourceAccess.CheckExistByCategories", t, func() {
 		ra, smock := MockNewResourceAccess(t)
 		sqlStr := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE f_catalog_id = ? AND f_category IN (?,?)", RESOURCE_TABLE_NAME)
 
-		Convey("CheckExistByCategories Success true\n", func() {
+		Convey("returns true when matching rows exist", func() {
 			rows := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1)
 			smock.ExpectQuery(sqlStr).WithArgs("catalog-1", interfaces.ResourceCategoryTable, interfaces.ResourceCategoryFile).WillReturnRows(rows)
 
@@ -89,7 +89,7 @@ func Test_ResourceAccess_CheckExistByCategories(t *testing.T) {
 			}
 		})
 
-		Convey("CheckExistByCategories Failed\n", func() {
+		Convey("propagates db error", func() {
 			expectedErr := errors.New("some error")
 			smock.ExpectQuery(sqlStr).WithArgs("catalog-1", interfaces.ResourceCategoryTable, interfaces.ResourceCategoryFile).WillReturnError(expectedErr)
 

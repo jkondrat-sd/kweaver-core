@@ -15,83 +15,89 @@ import (
 	"vega-backend/logics/connectors"
 )
 
-func TestConnectorFactory_RegisterConnector_Remote(t *testing.T) {
-	Convey("Test ConnectorFactory RegisterConnector registers remote connector", t, func() {
+func TestConnectorFactory_RegisterConnector(t *testing.T) {
+	Convey("Test ConnectorFactory.RegisterConnector", t, func() {
 		cf := &ConnectorFactory{connectors: map[string]connectors.Connector{}}
-		err := cf.RegisterConnector(context.Background(), "custom", &interfaces.ConnectorType{
-			Type:    "custom",
-			Name:    "Custom",
-			Mode:    interfaces.ConnectorModeRemote,
-			Enabled: true,
+
+		Convey("registers remote connector", func() {
+			err := cf.RegisterConnector(context.Background(), "custom", &interfaces.ConnectorType{
+				Type:    "custom",
+				Name:    "Custom",
+				Mode:    interfaces.ConnectorModeRemote,
+				Enabled: true,
+			})
+			So(err, ShouldBeNil)
+			So(cf.connectors["custom"].GetType(), ShouldEqual, "custom")
+			So(cf.connectors["custom"].GetEnabled(), ShouldBeTrue)
 		})
-		So(err, ShouldBeNil)
-		So(cf.connectors["custom"].GetType(), ShouldEqual, "custom")
-		So(cf.connectors["custom"].GetEnabled(), ShouldBeTrue)
-	})
-}
 
-func TestConnectorFactory_RegisterConnector_LocalNotImplemented(t *testing.T) {
-	Convey("Test ConnectorFactory RegisterConnector rejects missing local connector", t, func() {
-		cf := &ConnectorFactory{connectors: map[string]connectors.Connector{}}
-		err := cf.RegisterConnector(context.Background(), "custom", &interfaces.ConnectorType{
-			Type: "custom",
-			Name: "Custom",
-			Mode: interfaces.ConnectorModeLocal,
+		Convey("rejects unregistered local connector", func() {
+			err := cf.RegisterConnector(context.Background(), "custom", &interfaces.ConnectorType{
+				Type: "custom",
+				Name: "Custom",
+				Mode: interfaces.ConnectorModeLocal,
+			})
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "local connector custom:Custom not implemented")
 		})
-		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldContainSubstring, "local connector custom:Custom not implemented")
 	})
 }
 
-func TestConnectorFactory_SetConnectorEnabled_Success(t *testing.T) {
-	Convey("Test ConnectorFactory SetConnectorEnabled success", t, func() {
-		connector := &fakeConnector{enabled: false}
-		cf := &ConnectorFactory{connectors: map[string]connectors.Connector{"custom": connector}}
-		err := cf.SetConnectorEnabled(context.Background(), "custom", true)
-		So(err, ShouldBeNil)
-		So(connector.GetEnabled(), ShouldBeTrue)
+func TestConnectorFactory_SetConnectorEnabled(t *testing.T) {
+	Convey("Test ConnectorFactory.SetConnectorEnabled", t, func() {
+		Convey("toggles enabled flag on registered connector", func() {
+			connector := &fakeConnector{enabled: false}
+			cf := &ConnectorFactory{connectors: map[string]connectors.Connector{"custom": connector}}
+			err := cf.SetConnectorEnabled(context.Background(), "custom", true)
+			So(err, ShouldBeNil)
+			So(connector.GetEnabled(), ShouldBeTrue)
+		})
+
+		Convey("returns error when connector is missing", func() {
+			cf := &ConnectorFactory{connectors: map[string]connectors.Connector{}}
+			err := cf.SetConnectorEnabled(context.Background(), "missing", true)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "connector missing not implemented")
+		})
 	})
 }
 
-func TestConnectorFactory_SetConnectorEnabled_NotFound(t *testing.T) {
-	Convey("Test ConnectorFactory SetConnectorEnabled returns error when connector is missing", t, func() {
-		cf := &ConnectorFactory{connectors: map[string]connectors.Connector{}}
-		err := cf.SetConnectorEnabled(context.Background(), "missing", true)
-		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldContainSubstring, "connector missing not implemented")
-	})
-}
+func TestConnectorFactory_CreateConnectorInstance(t *testing.T) {
+	Convey("Test ConnectorFactory.CreateConnectorInstance", t, func() {
+		Convey("returns instance when connector is enabled", func() {
+			cf := &ConnectorFactory{connectors: map[string]connectors.Connector{
+				"custom": &fakeConnector{enabled: true},
+			}}
+			instance, err := cf.CreateConnectorInstance(context.Background(), "custom", interfaces.ConnectorConfig{"token": "secret"})
+			So(err, ShouldBeNil)
+			So(instance.GetType(), ShouldEqual, "custom")
+		})
 
-func TestConnectorFactory_CreateConnectorInstance_Success(t *testing.T) {
-	Convey("Test ConnectorFactory CreateConnectorInstance success", t, func() {
-		cf := &ConnectorFactory{connectors: map[string]connectors.Connector{
-			"custom": &fakeConnector{enabled: true},
-		}}
-		instance, err := cf.CreateConnectorInstance(context.Background(), "custom", interfaces.ConnectorConfig{"token": "secret"})
-		So(err, ShouldBeNil)
-		So(instance.GetType(), ShouldEqual, "custom")
-	})
-}
-
-func TestConnectorFactory_CreateConnectorInstance_Disabled(t *testing.T) {
-	Convey("Test ConnectorFactory CreateConnectorInstance rejects disabled connector", t, func() {
-		cf := &ConnectorFactory{connectors: map[string]connectors.Connector{
-			"custom": &fakeConnector{enabled: false},
-		}}
-		instance, err := cf.CreateConnectorInstance(context.Background(), "custom", nil)
-		So(instance, ShouldBeNil)
-		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldContainSubstring, "connector custom is disabled")
+		Convey("rejects disabled connector", func() {
+			cf := &ConnectorFactory{connectors: map[string]connectors.Connector{
+				"custom": &fakeConnector{enabled: false},
+			}}
+			instance, err := cf.CreateConnectorInstance(context.Background(), "custom", nil)
+			So(instance, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "connector custom is disabled")
+		})
 	})
 }
 
 func TestConnectorFactory_GetSensitiveFields(t *testing.T) {
-	Convey("Test ConnectorFactory GetSensitiveFields", t, func() {
+	Convey("Test ConnectorFactory.GetSensitiveFields", t, func() {
 		cf := &ConnectorFactory{connectors: map[string]connectors.Connector{
 			"custom": &fakeConnector{sensitiveFields: []string{"password", "token"}},
 		}}
-		So(cf.GetSensitiveFields("custom"), ShouldResemble, []string{"password", "token"})
-		So(cf.GetSensitiveFields("missing"), ShouldBeNil)
+
+		Convey("returns declared sensitive fields", func() {
+			So(cf.GetSensitiveFields("custom"), ShouldResemble, []string{"password", "token"})
+		})
+
+		Convey("returns nil for unknown connector", func() {
+			So(cf.GetSensitiveFields("missing"), ShouldBeNil)
+		})
 	})
 }
 

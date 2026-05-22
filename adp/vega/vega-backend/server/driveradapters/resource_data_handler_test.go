@@ -32,8 +32,8 @@ func newDatasetResource() *interfaces.Resource {
 	}
 }
 
-func Test_ResourceDataRestHandler_PostResourceDataByIn(t *testing.T) {
-	Convey("Test ResourceDataHandler PostResourceDataByIn\n", t, func() {
+func TestResourceDataRestHandler_PostResourceDataByIn(t *testing.T) {
+	Convey("Test resourceDataRestHandler.PostResourceDataByIn", t, func() {
 		restore := setGinMode()
 		defer restore()
 
@@ -142,8 +142,8 @@ func Test_ResourceDataRestHandler_PostResourceDataByIn(t *testing.T) {
 	})
 }
 
-func Test_ResourceDataRestHandler_PutResourceDataByIn(t *testing.T) {
-	Convey("Test ResourceDataHandler PutResourceDataByIn\n", t, func() {
+func TestResourceDataRestHandler_PutResourceDataByIn(t *testing.T) {
+	Convey("Test resourceDataRestHandler.PutResourceDataByIn", t, func() {
 		restore := setGinMode()
 		defer restore()
 
@@ -196,8 +196,8 @@ func Test_ResourceDataRestHandler_PutResourceDataByIn(t *testing.T) {
 	})
 }
 
-func Test_ResourceDataRestHandler_DocumentByIn(t *testing.T) {
-	Convey("Test ResourceDataHandler document APIs\n", t, func() {
+func TestResourceDataRestHandler_DocumentByIn(t *testing.T) {
+	Convey("Test resourceDataRestHandler document APIs", t, func() {
 		restore := setGinMode()
 		defer restore()
 

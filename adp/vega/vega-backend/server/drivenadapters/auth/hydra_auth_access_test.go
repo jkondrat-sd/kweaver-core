@@ -25,12 +25,12 @@ func (h fakeHydra) VerifyToken(ctx context.Context, c *gin.Context) (hydra.Visit
 	return h.visitor, h.err
 }
 
-func Test_hydraAuthAccess_VerifyToken(t *testing.T) {
-	Convey("Test VerifyToken", t, func() {
+func TestHydraAuthAccess_VerifyToken(t *testing.T) {
+	Convey("Test hydraAuthAccess.VerifyToken", t, func() {
 		ctx := context.Background()
 		ginCtx := &gin.Context{}
 
-		Convey("Should return visitor when hydra verifies token", func() {
+		Convey("returns visitor when hydra verifies token", func() {
 			expectedVisitor := hydra.Visitor{ID: "user-1", ClientID: "client-1"}
 			access := &hydraAuthAccess{
 				appSetting: &common.AppSetting{},
@@ -42,7 +42,7 @@ func Test_hydraAuthAccess_VerifyToken(t *testing.T) {
 			So(visitor, ShouldResemble, expectedVisitor)
 		})
 
-		Convey("Should return error when hydra rejects token", func() {
+		Convey("returns error when hydra rejects token", func() {
 			expectedErr := errors.New("invalid token")
 			access := &hydraAuthAccess{
 				appSetting: &common.AppSetting{},

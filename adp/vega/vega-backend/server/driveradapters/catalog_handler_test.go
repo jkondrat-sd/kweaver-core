@@ -21,8 +21,8 @@ import (
 	vmock "vega-backend/interfaces/mock"
 )
 
-func Test_CatalogRestHandler_ListCatalogs(t *testing.T) {
-	Convey("Test CatalogHandler ListCatalogs\n", t, func() {
+func TestCatalogRestHandler_ListCatalogs(t *testing.T) {
+	Convey("Test catalogRestHandler.ListCatalogs", t, func() {
 		test := setGinMode()
 		defer test()
 
@@ -38,7 +38,7 @@ func Test_CatalogRestHandler_ListCatalogs(t *testing.T) {
 
 		url := "/api/vega-backend/in/v1/catalogs"
 
-		Convey("Invalid type\n", func() {
+		Convey("Invalid type", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?type=unknown", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -48,7 +48,7 @@ func Test_CatalogRestHandler_ListCatalogs(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "invalid type: unknown")
 		})
 
-		Convey("Invalid health check status\n", func() {
+		Convey("Invalid health check status", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?health_check_status=unknown", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -58,7 +58,7 @@ func Test_CatalogRestHandler_ListCatalogs(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "invalid health_check_status: unknown")
 		})
 
-		Convey("Invalid enabled\n", func() {
+		Convey("Invalid enabled", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?enabled=maybe", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -67,7 +67,7 @@ func Test_CatalogRestHandler_ListCatalogs(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "invalid enabled: maybe")
 		})
 
-		Convey("Success list catalogs with name type and health check status\n", func() {
+		Convey("Success list catalogs with name type and health check status", func() {
 			cs.EXPECT().List(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, params interfaces.CatalogsQueryParams) ([]*interfaces.Catalog, int64, error) {
 					So(params.Name, ShouldEqual, "lake")
@@ -83,7 +83,7 @@ func Test_CatalogRestHandler_ListCatalogs(t *testing.T) {
 			So(w.Result().StatusCode, ShouldEqual, http.StatusOK)
 		})
 
-		Convey("Success list catalogs with enabled filter\n", func() {
+		Convey("Success list catalogs with enabled filter", func() {
 			cs.EXPECT().List(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, params interfaces.CatalogsQueryParams) ([]*interfaces.Catalog, int64, error) {
 					So(params.Enabled, ShouldNotBeNil)
@@ -98,7 +98,7 @@ func Test_CatalogRestHandler_ListCatalogs(t *testing.T) {
 			So(w.Result().StatusCode, ShouldEqual, http.StatusOK)
 		})
 
-		Convey("Invalid disabled health check status\n", func() {
+		Convey("Invalid disabled health check status", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?health_check_status=disabled", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -107,7 +107,7 @@ func Test_CatalogRestHandler_ListCatalogs(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "invalid health_check_status: disabled")
 		})
 
-		Convey("Success list catalogs with unchecked health check status\n", func() {
+		Convey("Success list catalogs with unchecked health check status", func() {
 			cs.EXPECT().List(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, params interfaces.CatalogsQueryParams) ([]*interfaces.Catalog, int64, error) {
 					So(params.HealthCheckStatus, ShouldEqual, interfaces.CatalogHealthStatusUnchecked)
@@ -123,8 +123,8 @@ func Test_CatalogRestHandler_ListCatalogs(t *testing.T) {
 	})
 }
 
-func Test_CatalogRestHandler_SetCatalogEnabled(t *testing.T) {
-	Convey("Test CatalogHandler SetCatalogEnabled\n", t, func() {
+func TestCatalogRestHandler_SetCatalogEnabled(t *testing.T) {
+	Convey("Test catalogRestHandler.SetCatalogEnabled", t, func() {
 		test := setGinMode()
 		defer test()
 
@@ -138,7 +138,7 @@ func Test_CatalogRestHandler_SetCatalogEnabled(t *testing.T) {
 		handler := MockNewRestHandler(&common.AppSetting{}, nil, cs, nil, nil, nil, nil, nil, nil, nil, nil)
 		handler.RegisterPublic(engine)
 
-		Convey("Enable disabled catalog\n", func() {
+		Convey("Enable disabled catalog", func() {
 			cs.EXPECT().GetByID(gomock.Any(), "catalog-1", false).
 				Return(&interfaces.Catalog{ID: "catalog-1", Name: "catalog", Enabled: false}, nil)
 			cs.EXPECT().SetEnabled(gomock.Any(), gomock.Any(), true).Return(nil)
@@ -150,7 +150,7 @@ func Test_CatalogRestHandler_SetCatalogEnabled(t *testing.T) {
 			So(w.Result().StatusCode, ShouldEqual, http.StatusNoContent)
 		})
 
-		Convey("Disable enabled catalog\n", func() {
+		Convey("Disable enabled catalog", func() {
 			cs.EXPECT().GetByID(gomock.Any(), "catalog-1", false).
 				Return(&interfaces.Catalog{ID: "catalog-1", Name: "catalog", Enabled: true}, nil)
 			cs.EXPECT().SetEnabled(gomock.Any(), gomock.Any(), false).Return(nil)
@@ -162,7 +162,7 @@ func Test_CatalogRestHandler_SetCatalogEnabled(t *testing.T) {
 			So(w.Result().StatusCode, ShouldEqual, http.StatusNoContent)
 		})
 
-		Convey("Enable already enabled catalog is idempotent\n", func() {
+		Convey("Enable already enabled catalog is idempotent", func() {
 			cs.EXPECT().GetByID(gomock.Any(), "catalog-1", false).
 				Return(&interfaces.Catalog{ID: "catalog-1", Name: "catalog", Enabled: true}, nil)
 
@@ -175,8 +175,8 @@ func Test_CatalogRestHandler_SetCatalogEnabled(t *testing.T) {
 	})
 }
 
-func Test_CatalogRestHandler_UpdateRejectsEnabledChange(t *testing.T) {
-	Convey("Test CatalogHandler Update rejects enabled change\n", t, func() {
+func TestCatalogRestHandler_UpdateRejectsEnabledChange(t *testing.T) {
+	Convey("Test catalogRestHandler.Update rejects enabled change", t, func() {
 		test := setGinMode()
 		defer test()
 
@@ -210,8 +210,8 @@ func Test_CatalogRestHandler_UpdateRejectsEnabledChange(t *testing.T) {
 	})
 }
 
-func Test_CatalogRestHandler_UpdateAllowsDatabaseChange(t *testing.T) {
-	Convey("Test CatalogHandler Update allows database change\n", t, func() {
+func TestCatalogRestHandler_UpdateAllowsDatabaseChange(t *testing.T) {
+	Convey("Test catalogRestHandler.Update allows database change", t, func() {
 		test := setGinMode()
 		defer test()
 
@@ -252,8 +252,8 @@ func Test_CatalogRestHandler_UpdateAllowsDatabaseChange(t *testing.T) {
 	})
 }
 
-func Test_CatalogRestHandler_DiscoverRejectsDisabledCatalog(t *testing.T) {
-	Convey("Test CatalogHandler Discover rejects disabled catalog\n", t, func() {
+func TestCatalogRestHandler_DiscoverRejectsDisabledCatalog(t *testing.T) {
+	Convey("Test catalogRestHandler.Discover rejects disabled catalog", t, func() {
 		test := setGinMode()
 		defer test()
 
@@ -280,8 +280,8 @@ func Test_CatalogRestHandler_DiscoverRejectsDisabledCatalog(t *testing.T) {
 	})
 }
 
-func Test_CatalogRestHandler_DiscoverRejectsLogicalCatalog(t *testing.T) {
-	Convey("Test CatalogHandler Discover rejects logical catalog\n", t, func() {
+func TestCatalogRestHandler_DiscoverRejectsLogicalCatalog(t *testing.T) {
+	Convey("Test catalogRestHandler.Discover rejects logical catalog", t, func() {
 		test := setGinMode()
 		defer test()
 

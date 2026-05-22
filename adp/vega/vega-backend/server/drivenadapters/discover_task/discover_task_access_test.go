@@ -105,7 +105,7 @@ func TestDiscoverTaskColumns(t *testing.T) {
 
 func TestScanDiscoverTask(t *testing.T) {
 	Convey("Test scanDiscoverTask", t, func() {
-		Convey("Should scan task with result", func() {
+		Convey("scans task with result", func() {
 			scanner := fakeDiscoverTaskScanner{values: []any{
 				"task-1",
 				"catalog-1",
@@ -133,7 +133,7 @@ func TestScanDiscoverTask(t *testing.T) {
 			So(task.Creator, ShouldResemble, interfaces.AccountInfo{ID: "user-1", Type: interfaces.ACCESSOR_TYPE_USER})
 		})
 
-		Convey("Should keep result nil when database value is null", func() {
+		Convey("keeps result nil when database value is null", func() {
 			scanner := fakeDiscoverTaskScanner{values: []any{
 				"task-1",
 				"catalog-1",
@@ -156,7 +156,7 @@ func TestScanDiscoverTask(t *testing.T) {
 			So(task.Result, ShouldBeNil)
 		})
 
-		Convey("Should return scan error", func() {
+		Convey("propagates scan error", func() {
 			expectedErr := errors.New("scan failed")
 			task, err := scanDiscoverTask(fakeDiscoverTaskScanner{err: expectedErr})
 			So(err, ShouldEqual, expectedErr)
@@ -165,12 +165,12 @@ func TestScanDiscoverTask(t *testing.T) {
 	})
 }
 
-func Test_DiscoverTaskAccess_GetScheduledTaskStrategy(t *testing.T) {
-	Convey("test GetScheduledTaskStrategy\n", t, func() {
+func TestDiscoverTaskAccess_GetScheduledTaskStrategy(t *testing.T) {
+	Convey("Test discoverTaskAccess.GetScheduledTaskStrategy", t, func() {
 		dta, smock := MockNewDiscoverTaskAccess(t)
 		sqlStr := "SELECT f_strategy FROM t_discover_schedule WHERE f_id = ?"
 
-		Convey("GetScheduledTaskStrategy Success\n", func() {
+		Convey("returns strategy on success", func() {
 			rows := sqlmock.NewRows([]string{"f_strategy"}).AddRow("full_sync")
 			smock.ExpectQuery(sqlStr).WithArgs("schedule-1").WillReturnRows(rows)
 
@@ -183,7 +183,7 @@ func Test_DiscoverTaskAccess_GetScheduledTaskStrategy(t *testing.T) {
 			}
 		})
 
-		Convey("GetScheduledTaskStrategy Success no row\n", func() {
+		Convey("returns empty when no row", func() {
 			smock.ExpectQuery(sqlStr).WithArgs("missing").WillReturnError(sql.ErrNoRows)
 
 			strategy, err := dta.GetScheduledTaskStrategy(context.Background(), "missing")
@@ -197,13 +197,13 @@ func Test_DiscoverTaskAccess_GetScheduledTaskStrategy(t *testing.T) {
 	})
 }
 
-func Test_DiscoverTaskAccess_Create(t *testing.T) {
-	Convey("test Create\n", t, func() {
+func TestDiscoverTaskAccess_Create(t *testing.T) {
+	Convey("Test discoverTaskAccess.Create", t, func() {
 		dta, smock := MockNewDiscoverTaskAccess(t)
 		task := testDiscoverTask()
 		sqlStr := fmt.Sprintf("INSERT INTO %s (f_id,f_catalog_id,f_schedule_id,f_strategy,f_trigger_type,f_status,f_progress,f_message,f_start_time,f_finish_time,f_result,f_creator,f_creator_type,f_create_time) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", DISCOVER_TASK_TABLE_NAME)
 
-		Convey("Create Success\n", func() {
+		Convey("creates task successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs(
 				task.ID,
 				task.CatalogID,
@@ -231,12 +231,12 @@ func Test_DiscoverTaskAccess_Create(t *testing.T) {
 	})
 }
 
-func Test_DiscoverTaskAccess_GetByID(t *testing.T) {
-	Convey("test GetByID\n", t, func() {
+func TestDiscoverTaskAccess_GetByID(t *testing.T) {
+	Convey("Test discoverTaskAccess.GetByID", t, func() {
 		dta, smock := MockNewDiscoverTaskAccess(t)
 		sqlStr := fmt.Sprintf("SELECT f_id, f_catalog_id, f_schedule_id, f_strategy, f_trigger_type, f_status, f_progress, f_message, f_start_time, f_finish_time, f_result, f_creator, f_creator_type, f_create_time FROM %s WHERE f_id = ?", DISCOVER_TASK_TABLE_NAME)
 
-		Convey("GetByID Success\n", func() {
+		Convey("returns task on success", func() {
 			smock.ExpectQuery(sqlStr).WithArgs("task-1").WillReturnRows(mockDiscoverTaskRows())
 
 			task, err := dta.GetByID(context.Background(), "task-1")
@@ -249,7 +249,7 @@ func Test_DiscoverTaskAccess_GetByID(t *testing.T) {
 			}
 		})
 
-		Convey("GetByID Success no row\n", func() {
+		Convey("returns nil when no row", func() {
 			smock.ExpectQuery(sqlStr).WithArgs("missing").WillReturnError(sql.ErrNoRows)
 
 			task, err := dta.GetByID(context.Background(), "missing")
@@ -263,12 +263,12 @@ func Test_DiscoverTaskAccess_GetByID(t *testing.T) {
 	})
 }
 
-func Test_DiscoverTaskAccess_Delete(t *testing.T) {
-	Convey("test Delete\n", t, func() {
+func TestDiscoverTaskAccess_Delete(t *testing.T) {
+	Convey("Test discoverTaskAccess.Delete", t, func() {
 		dta, smock := MockNewDiscoverTaskAccess(t)
 		sqlStr := fmt.Sprintf("DELETE FROM %s WHERE f_id = ?", DISCOVER_TASK_TABLE_NAME)
 
-		Convey("Delete Success\n", func() {
+		Convey("deletes successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs("task-1").WillReturnResult(sqlmock.NewResult(0, 1))
 
 			err := dta.Delete(context.Background(), "task-1")
@@ -279,7 +279,7 @@ func Test_DiscoverTaskAccess_Delete(t *testing.T) {
 			}
 		})
 
-		Convey("Delete no row\n", func() {
+		Convey("returns ErrNoRows when task missing", func() {
 			smock.ExpectExec(sqlStr).WithArgs("missing").WillReturnResult(sqlmock.NewResult(0, 0))
 
 			err := dta.Delete(context.Background(), "missing")

@@ -20,8 +20,8 @@ import (
 	vmock "vega-backend/interfaces/mock"
 )
 
-func Test_DiscoverTaskRestHandler_ListDiscoverTasks(t *testing.T) {
-	Convey("Test DiscoverTaskHandler ListDiscoverTasks\n", t, func() {
+func TestDiscoverTaskRestHandler_ListDiscoverTasks(t *testing.T) {
+	Convey("Test discoverTaskRestHandler.ListDiscoverTasks", t, func() {
 		test := setGinMode()
 		defer test()
 
@@ -37,7 +37,7 @@ func Test_DiscoverTaskRestHandler_ListDiscoverTasks(t *testing.T) {
 
 		url := "/api/vega-backend/in/v1/discover-tasks"
 
-		Convey("Invalid offset\n", func() {
+		Convey("Invalid offset", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?offset=-1", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -46,7 +46,7 @@ func Test_DiscoverTaskRestHandler_ListDiscoverTasks(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.InvalidParameter.Offset")
 		})
 
-		Convey("Invalid limit\n", func() {
+		Convey("Invalid limit", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?limit=99999999", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -55,7 +55,7 @@ func Test_DiscoverTaskRestHandler_ListDiscoverTasks(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.InvalidParameter.Limit")
 		})
 
-		Convey("Invalid sort field\n", func() {
+		Convey("Invalid sort field", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?sort=unknown_field", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -64,7 +64,7 @@ func Test_DiscoverTaskRestHandler_ListDiscoverTasks(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.InvalidParameter.Sort")
 		})
 
-		Convey("Invalid direction\n", func() {
+		Convey("Invalid direction", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?direction=foo", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -73,7 +73,7 @@ func Test_DiscoverTaskRestHandler_ListDiscoverTasks(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.InvalidParameter.Direction")
 		})
 
-		Convey("Invalid trigger type\n", func() {
+		Convey("Invalid trigger type", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?trigger_type=foo", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -82,7 +82,7 @@ func Test_DiscoverTaskRestHandler_ListDiscoverTasks(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "invalid trigger_type")
 		})
 
-		Convey("Success with default pagination\n", func() {
+		Convey("Success with default pagination", func() {
 			dts.EXPECT().List(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, params interfaces.DiscoverTaskQueryParams) ([]*interfaces.DiscoverTask, int64, error) {
 					So(params.Offset, ShouldEqual, 0)
@@ -99,7 +99,7 @@ func Test_DiscoverTaskRestHandler_ListDiscoverTasks(t *testing.T) {
 			So(w.Result().StatusCode, ShouldEqual, http.StatusOK)
 		})
 
-		Convey("Success with explicit query params\n", func() {
+		Convey("Success with explicit query params", func() {
 			dts.EXPECT().List(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, params interfaces.DiscoverTaskQueryParams) ([]*interfaces.DiscoverTask, int64, error) {
 					So(params.CatalogID, ShouldEqual, "cat-1")

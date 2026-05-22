@@ -124,7 +124,7 @@ func TestBuildTaskColumns(t *testing.T) {
 
 func TestScanBuildTask(t *testing.T) {
 	Convey("Test scanBuildTask", t, func() {
-		Convey("Should scan build task", func() {
+		Convey("scans build task fields successfully", func() {
 			scanner := fakeBuildTaskScanner{values: []any{
 				"task-1",
 				"resource-1",
@@ -159,13 +159,13 @@ func TestScanBuildTask(t *testing.T) {
 			So(task.ModelDimensions, ShouldEqual, 1536)
 		})
 
-		Convey("Should return sql no rows error", func() {
+		Convey("propagates sql.ErrNoRows", func() {
 			task, err := scanBuildTask(fakeBuildTaskScanner{err: sql.ErrNoRows})
 			So(err, ShouldEqual, sql.ErrNoRows)
 			So(task, ShouldBeNil)
 		})
 
-		Convey("Should return generic scan error", func() {
+		Convey("propagates generic scan error", func() {
 			expectedErr := errors.New("scan failed")
 			task, err := scanBuildTask(fakeBuildTaskScanner{err: expectedErr})
 			So(err, ShouldEqual, expectedErr)
@@ -174,8 +174,8 @@ func TestScanBuildTask(t *testing.T) {
 	})
 }
 
-func Test_BuildTaskAccess_Create(t *testing.T) {
-	Convey("test Create\n", t, func() {
+func TestBuildTaskAccess_Create(t *testing.T) {
+	Convey("Test buildTaskAccess.Create", t, func() {
 		bta, smock := MockNewBuildTaskAccess(t)
 		task := testBuildTask()
 
@@ -184,7 +184,7 @@ func Test_BuildTaskAccess_Create(t *testing.T) {
 			"f_update_time,f_embedding_fields,f_build_key_fields,f_embedding_model,f_model_dimensions) "+
 			"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", BUILD_TASK_TABLE_NAME)
 
-		Convey("Create Success\n", func() {
+		Convey("creates build task successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs(
 				task.ID,
 				task.ResourceID,
@@ -216,7 +216,7 @@ func Test_BuildTaskAccess_Create(t *testing.T) {
 			}
 		})
 
-		Convey("Create Exec sql error\n", func() {
+		Convey("propagates exec error", func() {
 			expectedErr := errors.New("some error")
 			smock.ExpectExec(sqlStr).WithArgs(
 				task.ID,
@@ -251,14 +251,14 @@ func Test_BuildTaskAccess_Create(t *testing.T) {
 	})
 }
 
-func Test_BuildTaskAccess_GetByID(t *testing.T) {
-	Convey("test GetByID\n", t, func() {
+func TestBuildTaskAccess_GetByID(t *testing.T) {
+	Convey("Test buildTaskAccess.GetByID", t, func() {
 		bta, smock := MockNewBuildTaskAccess(t)
 		sqlStr := fmt.Sprintf("SELECT f_id, f_resource_id, f_catalog_id, f_status, f_mode, f_total_count, f_synced_count, "+
 			"f_vectorized_count, f_synced_mark, f_error_msg, f_creator, f_creator_type, f_create_time, f_updater, f_updater_type, "+
 			"f_update_time, f_embedding_fields, f_build_key_fields, f_embedding_model, f_model_dimensions FROM %s WHERE f_id = ?", BUILD_TASK_TABLE_NAME)
 
-		Convey("GetByID Success\n", func() {
+		Convey("returns build task on success", func() {
 			smock.ExpectQuery(sqlStr).WithArgs("task-1").WillReturnRows(mockBuildTaskRows())
 
 			task, err := bta.GetByID(context.Background(), "task-1")
@@ -271,7 +271,7 @@ func Test_BuildTaskAccess_GetByID(t *testing.T) {
 			}
 		})
 
-		Convey("GetByID Success no row\n", func() {
+		Convey("returns nil when no row", func() {
 			smock.ExpectQuery(sqlStr).WithArgs("missing").WillReturnError(sql.ErrNoRows)
 
 			task, err := bta.GetByID(context.Background(), "missing")
@@ -283,7 +283,7 @@ func Test_BuildTaskAccess_GetByID(t *testing.T) {
 			}
 		})
 
-		Convey("GetByID Failed\n", func() {
+		Convey("propagates query error", func() {
 			expectedErr := errors.New("some error")
 			smock.ExpectQuery(sqlStr).WithArgs("task-1").WillReturnError(expectedErr)
 
@@ -298,12 +298,12 @@ func Test_BuildTaskAccess_GetByID(t *testing.T) {
 	})
 }
 
-func Test_BuildTaskAccess_GetStatus(t *testing.T) {
-	Convey("test GetStatus\n", t, func() {
+func TestBuildTaskAccess_GetStatus(t *testing.T) {
+	Convey("Test buildTaskAccess.GetStatus", t, func() {
 		bta, smock := MockNewBuildTaskAccess(t)
 		sqlStr := fmt.Sprintf("SELECT f_status FROM %s WHERE f_id = ?", BUILD_TASK_TABLE_NAME)
 
-		Convey("GetStatus Success\n", func() {
+		Convey("returns status on success", func() {
 			rows := sqlmock.NewRows([]string{"f_status"}).AddRow(interfaces.BuildTaskStatusRunning)
 			smock.ExpectQuery(sqlStr).WithArgs("task-1").WillReturnRows(rows)
 
@@ -316,7 +316,7 @@ func Test_BuildTaskAccess_GetStatus(t *testing.T) {
 			}
 		})
 
-		Convey("GetStatus Success no row\n", func() {
+		Convey("returns error when no row", func() {
 			smock.ExpectQuery(sqlStr).WithArgs("missing").WillReturnError(sql.ErrNoRows)
 
 			status, err := bta.GetStatus(context.Background(), "missing")
@@ -330,12 +330,12 @@ func Test_BuildTaskAccess_GetStatus(t *testing.T) {
 	})
 }
 
-func Test_BuildTaskAccess_Delete(t *testing.T) {
-	Convey("test Delete\n", t, func() {
+func TestBuildTaskAccess_Delete(t *testing.T) {
+	Convey("Test buildTaskAccess.Delete", t, func() {
 		bta, smock := MockNewBuildTaskAccess(t)
 		sqlStr := fmt.Sprintf("DELETE FROM %s WHERE f_id = ?", BUILD_TASK_TABLE_NAME)
 
-		Convey("Delete Success\n", func() {
+		Convey("deletes successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs("task-1").WillReturnResult(sqlmock.NewResult(0, 1))
 
 			err := bta.Delete(context.Background(), "task-1")
@@ -346,7 +346,7 @@ func Test_BuildTaskAccess_Delete(t *testing.T) {
 			}
 		})
 
-		Convey("Delete not found\n", func() {
+		Convey("returns error when task not found", func() {
 			smock.ExpectExec(sqlStr).WithArgs("missing").WillReturnResult(sqlmock.NewResult(0, 0))
 
 			err := bta.Delete(context.Background(), "missing")

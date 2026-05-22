@@ -10,20 +10,22 @@ import (
 	"vega-backend/common"
 )
 
-func Test_kafkaAccess_getBrokerAddress(t *testing.T) {
-	Convey("Test getBrokerAddress", t, func() {
-		ka := &kafkaAccess{appSetting: &common.AppSetting{MQSetting: libmq.MQSetting{
-			MQHost: "broker",
-			MQPort: 9092,
-		}}}
+func TestKafkaAccess_getBrokerAddress(t *testing.T) {
+	Convey("Test kafkaAccess.getBrokerAddress", t, func() {
+		Convey("composes host:port from MQ setting", func() {
+			ka := &kafkaAccess{appSetting: &common.AppSetting{MQSetting: libmq.MQSetting{
+				MQHost: "broker",
+				MQPort: 9092,
+			}}}
 
-		So(ka.getBrokerAddress(), ShouldEqual, "broker:9092")
+			So(ka.getBrokerAddress(), ShouldEqual, "broker:9092")
+		})
 	})
 }
 
-func Test_kafkaAccess_getSASLDialer(t *testing.T) {
-	Convey("Test getSASLDialer", t, func() {
-		Convey("Should not set SASL mechanism without auth", func() {
+func TestKafkaAccess_getSASLDialer(t *testing.T) {
+	Convey("Test kafkaAccess.getSASLDialer", t, func() {
+		Convey("does not set SASL mechanism without auth", func() {
 			ka := &kafkaAccess{appSetting: &common.AppSetting{}}
 
 			dialer := ka.getSASLDialer()
@@ -31,7 +33,7 @@ func Test_kafkaAccess_getSASLDialer(t *testing.T) {
 			So(dialer.SASLMechanism, ShouldBeNil)
 		})
 
-		Convey("Should set SASL mechanism with PLAIN auth", func() {
+		Convey("sets SASL mechanism with PLAIN auth", func() {
 			ka := &kafkaAccess{appSetting: &common.AppSetting{MQSetting: libmq.MQSetting{
 				Auth: libmq.MQAuthSetting{
 					Username:  "user",
@@ -45,7 +47,7 @@ func Test_kafkaAccess_getSASLDialer(t *testing.T) {
 			So(dialer.SASLMechanism, ShouldNotBeNil)
 		})
 
-		Convey("Should fall back to PLAIN mechanism for unsupported mechanism", func() {
+		Convey("falls back to PLAIN mechanism for unsupported mechanism", func() {
 			ka := &kafkaAccess{appSetting: &common.AppSetting{MQSetting: libmq.MQSetting{
 				Auth: libmq.MQAuthSetting{
 					Username:  "user",
@@ -60,11 +62,11 @@ func Test_kafkaAccess_getSASLDialer(t *testing.T) {
 	})
 }
 
-func Test_kafkaAccess_NewWriter(t *testing.T) {
-	Convey("Test NewWriter", t, func() {
+func TestKafkaAccess_NewWriter(t *testing.T) {
+	Convey("Test kafkaAccess.NewWriter", t, func() {
 		ctx := context.Background()
 
-		Convey("Should create writer without transport when auth is empty", func() {
+		Convey("creates writer without transport when auth is empty", func() {
 			ka := &kafkaAccess{appSetting: &common.AppSetting{MQSetting: libmq.MQSetting{
 				MQHost: "broker",
 				MQPort: 9092,
@@ -77,7 +79,7 @@ func Test_kafkaAccess_NewWriter(t *testing.T) {
 			So(writer.Transport, ShouldBeNil)
 		})
 
-		Convey("Should create writer with transport when auth exists", func() {
+		Convey("creates writer with transport when auth exists", func() {
 			ka := &kafkaAccess{appSetting: &common.AppSetting{MQSetting: libmq.MQSetting{
 				MQHost: "broker",
 				MQPort: 9092,

@@ -21,8 +21,8 @@ import (
 	vmock "vega-backend/interfaces/mock"
 )
 
-func Test_AuthResourceRestHandler_ListAuthResourcesRoute(t *testing.T) {
-	Convey("Test AuthResourceHandler ListAuthResources route\n", t, func() {
+func TestAuthResourceRestHandler_ListAuthResourcesRoute(t *testing.T) {
+	Convey("Test authResourceRestHandler.ListAuthResources routes by type", t, func() {
 		test := setGinMode()
 		defer test()
 
@@ -48,8 +48,8 @@ func Test_AuthResourceRestHandler_ListAuthResourcesRoute(t *testing.T) {
 	})
 }
 
-func Test_AuthResourceRestHandler_ListConnectorTypeResources(t *testing.T) {
-	Convey("Test AuthResourceHandler connector-type resources\n", t, func() {
+func TestAuthResourceRestHandler_ListConnectorTypeResources(t *testing.T) {
+	Convey("Test authResourceRestHandler.ListAuthResources for connector-type", t, func() {
 		test := setGinMode()
 		defer test()
 
@@ -85,8 +85,8 @@ func Test_AuthResourceRestHandler_ListConnectorTypeResources(t *testing.T) {
 	})
 }
 
-func Test_AuthResourceRestHandler_RejectUnsupportedSort(t *testing.T) {
-	Convey("Test AuthResourceHandler rejects unsupported sort\n", t, func() {
+func TestAuthResourceRestHandler_RejectUnsupportedSort(t *testing.T) {
+	Convey("Test authResourceRestHandler.ListAuthResources rejects unsupported sort", t, func() {
 		test := setGinMode()
 		defer test()
 

@@ -12,13 +12,13 @@ import (
 
 func TestCatalogExtensionHelpers(t *testing.T) {
 	Convey("Test catalog extension helpers", t, func() {
-		Convey("Should prefix column when extension filters exist", func() {
+		Convey("prefixes column when extension filters exist", func() {
 			params := interfaces.CatalogsQueryParams{ExtensionKeys: []string{"env"}}
 			So(catalogExtCol(params, "f_update_time"), ShouldEqual, "t_catalog.f_update_time")
 			So(catalogListOrderExpr(params), ShouldEqual, "t_catalog.f_update_time ")
 		})
 
-		Convey("Should keep column unprefixed without extension filters", func() {
+		Convey("keeps column unprefixed without extension filters", func() {
 			params := interfaces.CatalogsQueryParams{PaginationQueryParams: interfaces.PaginationQueryParams{
 				Sort:      "f_name",
 				Direction: "DESC",
@@ -27,7 +27,7 @@ func TestCatalogExtensionHelpers(t *testing.T) {
 			So(catalogListOrderExpr(params), ShouldEqual, "f_name DESC")
 		})
 
-		Convey("Should apply extension joins", func() {
+		Convey("applies extension joins", func() {
 			params := interfaces.CatalogsQueryParams{
 				ExtensionKeys:   []string{"env"},
 				ExtensionValues: []string{"prod"},

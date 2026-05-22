@@ -24,22 +24,21 @@ func newTestUserMgmtAccess(appSetting *common.AppSetting, httpClient rest.HTTPCl
 	}
 }
 
-func Test_userMgmtAccess_GetAccountNames(t *testing.T) {
-	Convey("Test GetAccountNames", t, func() {
+func TestUserMgmtAccess_GetAccountNames(t *testing.T) {
+	Convey("Test userMgmtAccess.GetAccountNames", t, func() {
 		ctx := context.Background()
 		mockCtrl := gomock.NewController(t)
-		defer mockCtrl.Finish()
 
 		appSetting := &common.AppSetting{UserMgmtUrl: "http://test-user-mgmt"}
 		mockHTTPClient := rmock.NewMockHTTPClient(mockCtrl)
 		uma := newTestUserMgmtAccess(appSetting, mockHTTPClient)
 
-		Convey("Should return nil when accounts are empty", func() {
+		Convey("returns nil when accounts are empty", func() {
 			err := uma.GetAccountNames(ctx, nil)
 			So(err, ShouldBeNil)
 		})
 
-		Convey("Should fill account names and keep default name for missing accounts", func() {
+		Convey("fills account names and keeps default name for missing accounts", func() {
 			respData, _ := sonic.Marshal(map[string]any{
 				"user_names": []map[string]string{{"id": "u1", "name": "Alice"}},
 				"app_names":  []map[string]string{{"id": "a1", "name": "Robot"}},
@@ -74,7 +73,7 @@ func Test_userMgmtAccess_GetAccountNames(t *testing.T) {
 			So(accounts[4].Name, ShouldEqual, "")
 		})
 
-		Convey("Should return error when HTTP request fails", func() {
+		Convey("returns error when HTTP request fails", func() {
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(0, nil, errors.New("network error"))
@@ -83,7 +82,7 @@ func Test_userMgmtAccess_GetAccountNames(t *testing.T) {
 			So(err, ShouldNotBeNil)
 		})
 
-		Convey("Should return error when status is not OK", func() {
+		Convey("returns error when status is not OK", func() {
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(http.StatusInternalServerError, []byte("internal error"), nil)
@@ -92,7 +91,7 @@ func Test_userMgmtAccess_GetAccountNames(t *testing.T) {
 			So(err, ShouldNotBeNil)
 		})
 
-		Convey("Should return error when response cannot be unmarshaled", func() {
+		Convey("returns error when response cannot be unmarshaled", func() {
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(http.StatusOK, []byte("invalid json"), nil)

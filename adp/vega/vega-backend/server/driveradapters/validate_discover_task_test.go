@@ -14,16 +14,16 @@ import (
 	"vega-backend/interfaces"
 )
 
-func Test_ValidateDiscoverTaskQueryParams(t *testing.T) {
-	Convey("Test ValidateDiscoverTaskQueryParams\n", t, func() {
+func TestValidateDiscoverTaskQueryParams(t *testing.T) {
+	Convey("Test ValidateDiscoverTaskQueryParams", t, func() {
 		ctx := context.Background()
 
-		Convey("Valid empty params\n", func() {
+		Convey("Valid empty params", func() {
 			err := ValidateDiscoverTaskQueryParams(ctx, interfaces.DiscoverTaskQueryParams{})
 			So(err, ShouldBeNil)
 		})
 
-		Convey("Valid status and trigger type\n", func() {
+		Convey("Valid status and trigger type", func() {
 			err := ValidateDiscoverTaskQueryParams(ctx, interfaces.DiscoverTaskQueryParams{
 				Status:      interfaces.DiscoverTaskStatusCompleted,
 				TriggerType: interfaces.DiscoverTaskTriggerScheduled,
@@ -31,14 +31,14 @@ func Test_ValidateDiscoverTaskQueryParams(t *testing.T) {
 			So(err, ShouldBeNil)
 		})
 
-		Convey("Invalid status\n", func() {
+		Convey("Invalid status", func() {
 			err := ValidateDiscoverTaskQueryParams(ctx, interfaces.DiscoverTaskQueryParams{
 				Status: "unknown",
 			})
 			So(err, ShouldNotBeNil)
 		})
 
-		Convey("Invalid trigger type\n", func() {
+		Convey("Invalid trigger type", func() {
 			err := ValidateDiscoverTaskQueryParams(ctx, interfaces.DiscoverTaskQueryParams{
 				TriggerType: "unknown",
 			})

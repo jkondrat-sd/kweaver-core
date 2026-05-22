@@ -22,8 +22,8 @@ func MockNewCatalogAccess(t *testing.T) (*catalogAccess, sqlmock.Sqlmock) {
 	return &catalogAccess{appSetting: &common.AppSetting{}, db: db}, smock
 }
 
-func Test_CatalogAccess_UpdateHealthCheckStatus(t *testing.T) {
-	Convey("test UpdateHealthCheckStatus\n", t, func() {
+func TestCatalogAccess_UpdateHealthCheckStatus(t *testing.T) {
+	Convey("Test catalogAccess.UpdateHealthCheckStatus", t, func() {
 		ca, smock := MockNewCatalogAccess(t)
 		sqlStr := fmt.Sprintf("UPDATE %s SET f_health_check_status = ?, f_last_check_time = ?, f_health_check_result = ? WHERE f_id = ?", CATALOG_TABLE_NAME)
 		status := interfaces.CatalogHealthCheckStatus{
@@ -32,7 +32,7 @@ func Test_CatalogAccess_UpdateHealthCheckStatus(t *testing.T) {
 			HealthCheckResult: "ok",
 		}
 
-		Convey("UpdateHealthCheckStatus Success\n", func() {
+		Convey("updates status successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs(status.HealthCheckStatus, status.LastCheckTime, status.HealthCheckResult, "catalog-1").
 				WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -44,7 +44,7 @@ func Test_CatalogAccess_UpdateHealthCheckStatus(t *testing.T) {
 			}
 		})
 
-		Convey("UpdateHealthCheckStatus Failed\n", func() {
+		Convey("propagates db error", func() {
 			expectedErr := errors.New("some error")
 			smock.ExpectExec(sqlStr).WithArgs(status.HealthCheckStatus, status.LastCheckTime, status.HealthCheckResult, "catalog-1").
 				WillReturnError(expectedErr)
@@ -59,8 +59,8 @@ func Test_CatalogAccess_UpdateHealthCheckStatus(t *testing.T) {
 	})
 }
 
-func Test_CatalogAccess_UpdateEnabled(t *testing.T) {
-	Convey("test UpdateEnabled\n", t, func() {
+func TestCatalogAccess_UpdateEnabled(t *testing.T) {
+	Convey("Test catalogAccess.UpdateEnabled", t, func() {
 		ca, smock := MockNewCatalogAccess(t)
 		sqlStr := fmt.Sprintf("UPDATE %s SET f_enabled = ?, f_health_check_status = ?, f_last_check_time = ?, f_health_check_result = ?, f_updater = ?, f_updater_type = ?, f_update_time = ? WHERE f_id = ?", CATALOG_TABLE_NAME)
 		status := interfaces.CatalogHealthCheckStatus{
@@ -70,7 +70,7 @@ func Test_CatalogAccess_UpdateEnabled(t *testing.T) {
 		}
 		updater := interfaces.AccountInfo{ID: "user-1", Type: interfaces.ACCESSOR_TYPE_USER}
 
-		Convey("UpdateEnabled Success\n", func() {
+		Convey("updates enabled flag and metadata successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs(true, status.HealthCheckStatus, status.LastCheckTime, status.HealthCheckResult, updater.ID, updater.Type, int64(2000), "catalog-1").
 				WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -84,12 +84,12 @@ func Test_CatalogAccess_UpdateEnabled(t *testing.T) {
 	})
 }
 
-func Test_CatalogAccess_UpdateMetadata(t *testing.T) {
-	Convey("test UpdateMetadata\n", t, func() {
+func TestCatalogAccess_UpdateMetadata(t *testing.T) {
+	Convey("Test catalogAccess.UpdateMetadata", t, func() {
 		ca, smock := MockNewCatalogAccess(t)
 		sqlStr := fmt.Sprintf("UPDATE %s SET f_metadata = ? WHERE f_id = ?", CATALOG_TABLE_NAME)
 
-		Convey("UpdateMetadata Success\n", func() {
+		Convey("updates metadata successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs(sqlmock.AnyArg(), "catalog-1").
 				WillReturnResult(sqlmock.NewResult(0, 1))
 

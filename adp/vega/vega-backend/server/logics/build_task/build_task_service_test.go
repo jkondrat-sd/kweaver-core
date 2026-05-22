@@ -15,50 +15,54 @@ import (
 
 	verrors "vega-backend/errors"
 	"vega-backend/interfaces"
-	mock_interfaces "vega-backend/interfaces/mock"
+	vmock "vega-backend/interfaces/mock"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestCreateBuildTaskRejectsDisabledCatalog(t *testing.T) {
-	Convey("Test CreateBuildTask rejects disabled catalog", t, func() {
+func TestBuildTaskService_CreateBuildTask(t *testing.T) {
+	Convey("Test buildTaskService.CreateBuildTask", t, func() {
 		ctrl := gomock.NewController(t)
-		mockCS := mock_interfaces.NewMockCatalogService(ctrl)
-		mockRA := mock_interfaces.NewMockResourceAccess(ctrl)
+		mockCS := vmock.NewMockCatalogService(ctrl)
+		mockRA := vmock.NewMockResourceAccess(ctrl)
 		service := &buildTaskService{cs: mockCS, ra: mockRA}
 
-		mockRA.EXPECT().GetByID(gomock.Any(), "resource-1").
-			Return(&interfaces.Resource{
-				ID:        "resource-1",
-				CatalogID: "catalog-1",
-				Category:  interfaces.ResourceCategoryTable,
-			}, nil)
-		mockCS.EXPECT().GetByID(gomock.Any(), "catalog-1", false).
-			Return(&interfaces.Catalog{ID: "catalog-1", Enabled: false}, nil)
+		Convey("rejects when catalog is disabled", func() {
+			mockRA.EXPECT().GetByID(gomock.Any(), "resource-1").
+				Return(&interfaces.Resource{
+					ID:        "resource-1",
+					CatalogID: "catalog-1",
+					Category:  interfaces.ResourceCategoryTable,
+				}, nil)
+			mockCS.EXPECT().GetByID(gomock.Any(), "catalog-1", false).
+				Return(&interfaces.Catalog{ID: "catalog-1", Enabled: false}, nil)
 
-		_, err := service.CreateBuildTask(context.Background(), &interfaces.CreateBuildTaskRequest{ResourceID: "resource-1"})
-		assertCatalogDisabledError(err)
+			_, err := service.CreateBuildTask(context.Background(), &interfaces.CreateBuildTaskRequest{ResourceID: "resource-1"})
+			assertCatalogDisabledError(err)
+		})
 	})
 }
 
-func TestStartBuildTaskRejectsDisabledCatalog(t *testing.T) {
-	Convey("Test StartBuildTask rejects disabled catalog", t, func() {
+func TestBuildTaskService_StartBuildTask(t *testing.T) {
+	Convey("Test buildTaskService.StartBuildTask", t, func() {
 		ctrl := gomock.NewController(t)
-		mockCS := mock_interfaces.NewMockCatalogService(ctrl)
-		mockBTA := mock_interfaces.NewMockBuildTaskAccess(ctrl)
+		mockCS := vmock.NewMockCatalogService(ctrl)
+		mockBTA := vmock.NewMockBuildTaskAccess(ctrl)
 		service := &buildTaskService{cs: mockCS, bta: mockBTA}
 
-		mockBTA.EXPECT().GetByID(gomock.Any(), "task-1").
-			Return(&interfaces.BuildTask{
-				ID:        "task-1",
-				CatalogID: "catalog-1",
-				Status:    interfaces.BuildTaskStatusInit,
-			}, nil)
-		mockCS.EXPECT().GetByID(gomock.Any(), "catalog-1", false).
-			Return(&interfaces.Catalog{ID: "catalog-1", Enabled: false}, nil)
+		Convey("rejects when catalog is disabled", func() {
+			mockBTA.EXPECT().GetByID(gomock.Any(), "task-1").
+				Return(&interfaces.BuildTask{
+					ID:        "task-1",
+					CatalogID: "catalog-1",
+					Status:    interfaces.BuildTaskStatusInit,
+				}, nil)
+			mockCS.EXPECT().GetByID(gomock.Any(), "catalog-1", false).
+				Return(&interfaces.Catalog{ID: "catalog-1", Enabled: false}, nil)
 
-		err := service.StartBuildTask(context.Background(), "task-1", interfaces.BuildTaskExecuteTypeIncremental)
-		assertCatalogDisabledError(err)
+			err := service.StartBuildTask(context.Background(), "task-1", interfaces.BuildTaskExecuteTypeIncremental)
+			assertCatalogDisabledError(err)
+		})
 	})
 }
 

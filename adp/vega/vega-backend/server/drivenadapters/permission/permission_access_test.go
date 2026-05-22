@@ -42,16 +42,14 @@ func newPermissionPolicy() interfaces.PermissionPolicy {
 	}
 }
 
-func Test_permissionAccess_CheckPermission(t *testing.T) {
-	Convey("Test CheckPermission", t, func() {
+func TestPermissionAccess_CheckPermission(t *testing.T) {
+	Convey("Test permissionAccess.CheckPermission", t, func() {
 		ctx := context.Background()
 		mockCtrl := gomock.NewController(t)
-		defer mockCtrl.Finish()
-
 		mockHTTPClient := rmock.NewMockHTTPClient(mockCtrl)
 		pa := newTestPermissionAccess(&common.AppSetting{PermissionUrl: "http://permission"}, mockHTTPClient)
 
-		Convey("Should return permission result", func() {
+		Convey("returns permission result", func() {
 			respData, _ := sonic.Marshal(interfaces.PermissionCheckResult{Result: true})
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), "http://permission/operation-check", gomock.Any(), gomock.Any()).
@@ -67,7 +65,7 @@ func Test_permissionAccess_CheckPermission(t *testing.T) {
 			So(ok, ShouldBeTrue)
 		})
 
-		Convey("Should return false when result body is nil", func() {
+		Convey("returns false when result body is nil", func() {
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(http.StatusOK, nil, nil)
@@ -77,7 +75,7 @@ func Test_permissionAccess_CheckPermission(t *testing.T) {
 			So(ok, ShouldBeFalse)
 		})
 
-		Convey("Should return error when HTTP request fails", func() {
+		Convey("returns error when HTTP request fails", func() {
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(0, nil, errors.New("network error"))
@@ -87,7 +85,7 @@ func Test_permissionAccess_CheckPermission(t *testing.T) {
 			So(ok, ShouldBeFalse)
 		})
 
-		Convey("Should return HTTPError when status is not OK", func() {
+		Convey("returns HTTPError when status is not OK", func() {
 			respData, _ := sonic.Marshal(PermissionError{Code: "Forbidden", Message: "denied"})
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -99,7 +97,7 @@ func Test_permissionAccess_CheckPermission(t *testing.T) {
 			So(err.(*rest.HTTPError).HTTPCode, ShouldEqual, http.StatusForbidden)
 		})
 
-		Convey("Should return error when response cannot be unmarshaled", func() {
+		Convey("returns error when response cannot be unmarshaled", func() {
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(http.StatusOK, []byte("invalid json"), nil)
@@ -111,16 +109,14 @@ func Test_permissionAccess_CheckPermission(t *testing.T) {
 	})
 }
 
-func Test_permissionAccess_CreateResources(t *testing.T) {
-	Convey("Test CreateResources", t, func() {
+func TestPermissionAccess_CreateResources(t *testing.T) {
+	Convey("Test permissionAccess.CreateResources", t, func() {
 		ctx := context.Background()
 		mockCtrl := gomock.NewController(t)
-		defer mockCtrl.Finish()
-
 		mockHTTPClient := rmock.NewMockHTTPClient(mockCtrl)
 		pa := newTestPermissionAccess(&common.AppSetting{PermissionUrl: "http://permission"}, mockHTTPClient)
 
-		Convey("Should create resources", func() {
+		Convey("creates resources successfully", func() {
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), "http://permission/policy", gomock.Any(), gomock.Any()).
 				Return(http.StatusNoContent, nil, nil)
@@ -129,7 +125,7 @@ func Test_permissionAccess_CreateResources(t *testing.T) {
 			So(err, ShouldBeNil)
 		})
 
-		Convey("Should return HTTPError when status is not NoContent", func() {
+		Convey("returns HTTPError when status is not NoContent", func() {
 			respData, _ := sonic.Marshal(PermissionError{Code: "Invalid", Description: "bad request"})
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -142,16 +138,14 @@ func Test_permissionAccess_CreateResources(t *testing.T) {
 	})
 }
 
-func Test_permissionAccess_DeleteResources(t *testing.T) {
-	Convey("Test DeleteResources", t, func() {
+func TestPermissionAccess_DeleteResources(t *testing.T) {
+	Convey("Test permissionAccess.DeleteResources", t, func() {
 		ctx := context.Background()
 		mockCtrl := gomock.NewController(t)
-		defer mockCtrl.Finish()
-
 		mockHTTPClient := rmock.NewMockHTTPClient(mockCtrl)
 		pa := newTestPermissionAccess(&common.AppSetting{PermissionUrl: "http://permission"}, mockHTTPClient)
 
-		Convey("Should delete resources with method override", func() {
+		Convey("deletes resources with method override", func() {
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), "http://permission/policy-delete", gomock.Any(), gomock.Any()).
 				DoAndReturn(func(ctx context.Context, url string, headers map[string]string, body any) (int, []byte, error) {
@@ -165,7 +159,7 @@ func Test_permissionAccess_DeleteResources(t *testing.T) {
 			So(err, ShouldBeNil)
 		})
 
-		Convey("Should return error when HTTP request fails", func() {
+		Convey("returns error when HTTP request fails", func() {
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(0, nil, errors.New("network error"))
@@ -176,12 +170,10 @@ func Test_permissionAccess_DeleteResources(t *testing.T) {
 	})
 }
 
-func Test_permissionAccess_FilterResources(t *testing.T) {
-	Convey("Test FilterResources", t, func() {
+func TestPermissionAccess_FilterResources(t *testing.T) {
+	Convey("Test permissionAccess.FilterResources", t, func() {
 		ctx := context.Background()
 		mockCtrl := gomock.NewController(t)
-		defer mockCtrl.Finish()
-
 		mockHTTPClient := rmock.NewMockHTTPClient(mockCtrl)
 		pa := newTestPermissionAccess(&common.AppSetting{PermissionUrl: "http://permission"}, mockHTTPClient)
 		filter := interfaces.PermissionResourcesFilter{
@@ -189,7 +181,7 @@ func Test_permissionAccess_FilterResources(t *testing.T) {
 			Operations: []string{interfaces.OPERATION_TYPE_VIEW_DETAIL},
 		}
 
-		Convey("Should return allowed operations by resource", func() {
+		Convey("returns allowed operations by resource", func() {
 			respData, _ := sonic.Marshal([]map[string]any{
 				{"id": "resource-1", "allow_operation": []string{interfaces.OPERATION_TYPE_VIEW_DETAIL}},
 			})
@@ -208,7 +200,7 @@ func Test_permissionAccess_FilterResources(t *testing.T) {
 			})
 		})
 
-		Convey("Should return empty map when body is nil", func() {
+		Convey("returns empty map when body is nil", func() {
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(http.StatusOK, nil, nil)
@@ -218,7 +210,7 @@ func Test_permissionAccess_FilterResources(t *testing.T) {
 			So(ops, ShouldResemble, map[string]interfaces.PermissionResourceOps{})
 		})
 
-		Convey("Should return error when response cannot be unmarshaled", func() {
+		Convey("returns error when response cannot be unmarshaled", func() {
 			mockHTTPClient.EXPECT().
 				PostNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(http.StatusOK, []byte("invalid json"), nil)

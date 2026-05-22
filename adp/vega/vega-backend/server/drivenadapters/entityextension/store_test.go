@@ -28,12 +28,12 @@ func TestFilterKeys(t *testing.T) {
 			"team":  "search",
 		}
 
-		Convey("Should return original map when keysCSV is empty", func() {
+		Convey("returns original map when keysCSV is empty", func() {
 			out := FilterKeys(input, "")
 			So(out, ShouldResemble, input)
 		})
 
-		Convey("Should trim keys and keep only allowed keys", func() {
+		Convey("trims keys and keeps only allowed keys", func() {
 			out := FilterKeys(input, " env, team ")
 			So(out, ShouldResemble, map[string]string{
 				"env":  "prod",
@@ -41,7 +41,7 @@ func TestFilterKeys(t *testing.T) {
 			})
 		})
 
-		Convey("Should return original map when parsed keys are empty", func() {
+		Convey("returns original map when parsed keys are empty", func() {
 			out := FilterKeys(input, " , ")
 			So(out, ShouldResemble, input)
 		})
@@ -50,44 +50,48 @@ func TestFilterKeys(t *testing.T) {
 
 func TestApplyJoinsForCatalog(t *testing.T) {
 	Convey("Test ApplyJoinsForCatalog", t, func() {
-		builder := sq.Select("t_catalog.f_id").From("t_catalog")
+		Convey("emits one extension join per key with kind args", func() {
+			builder := sq.Select("t_catalog.f_id").From("t_catalog")
 
-		sqlStr, args, err := ApplyJoinsForCatalog(
-			builder,
-			[]string{"env", "team"},
-			[]string{"prod", "search"},
-		).ToSql()
+			sqlStr, args, err := ApplyJoinsForCatalog(
+				builder,
+				[]string{"env", "team"},
+				[]string{"prod", "search"},
+			).ToSql()
 
-		So(err, ShouldBeNil)
-		So(sqlStr, ShouldContainSubstring, "JOIN t_entity_extension vex0 ON vex0.f_entity_kind = ? AND vex0.f_entity_id = t_catalog.f_id AND vex0.f_key = ? AND vex0.f_value = ?")
-		So(sqlStr, ShouldContainSubstring, "JOIN t_entity_extension vex1 ON vex1.f_entity_kind = ? AND vex1.f_entity_id = t_catalog.f_id AND vex1.f_key = ? AND vex1.f_value = ?")
-		So(args, ShouldResemble, []any{KindCatalog, "env", "prod", KindCatalog, "team", "search"})
+			So(err, ShouldBeNil)
+			So(sqlStr, ShouldContainSubstring, "JOIN t_entity_extension vex0 ON vex0.f_entity_kind = ? AND vex0.f_entity_id = t_catalog.f_id AND vex0.f_key = ? AND vex0.f_value = ?")
+			So(sqlStr, ShouldContainSubstring, "JOIN t_entity_extension vex1 ON vex1.f_entity_kind = ? AND vex1.f_entity_id = t_catalog.f_id AND vex1.f_key = ? AND vex1.f_value = ?")
+			So(args, ShouldResemble, []any{KindCatalog, "env", "prod", KindCatalog, "team", "search"})
+		})
 	})
 }
 
 func TestApplyJoinsForResource(t *testing.T) {
 	Convey("Test ApplyJoinsForResource", t, func() {
-		builder := sq.Select("t_resource.f_id").From("t_resource")
+		Convey("emits extension join with resource kind", func() {
+			builder := sq.Select("t_resource.f_id").From("t_resource")
 
-		sqlStr, args, err := ApplyJoinsForResource(
-			builder,
-			[]string{"env"},
-			[]string{"prod"},
-		).ToSql()
+			sqlStr, args, err := ApplyJoinsForResource(
+				builder,
+				[]string{"env"},
+				[]string{"prod"},
+			).ToSql()
 
-		So(err, ShouldBeNil)
-		So(sqlStr, ShouldContainSubstring, "JOIN t_entity_extension vex0 ON vex0.f_entity_kind = ? AND vex0.f_entity_id = t_resource.f_id AND vex0.f_key = ? AND vex0.f_value = ?")
-		So(args, ShouldResemble, []any{KindResource, "env", "prod"})
+			So(err, ShouldBeNil)
+			So(sqlStr, ShouldContainSubstring, "JOIN t_entity_extension vex0 ON vex0.f_entity_kind = ? AND vex0.f_entity_id = t_resource.f_id AND vex0.f_key = ? AND vex0.f_value = ?")
+			So(args, ShouldResemble, []any{KindResource, "env", "prod"})
+		})
 	})
 }
 
-func Test_Store_Replace(t *testing.T) {
-	Convey("test Replace\n", t, func() {
+func TestStore_Replace(t *testing.T) {
+	Convey("Test Store.Replace", t, func() {
 		store, smock := MockNewStore(t)
 		deleteSQL := fmt.Sprintf("DELETE FROM %s WHERE f_entity_id = ? AND f_entity_kind = ?", tableName)
 		insertSQL := fmt.Sprintf("INSERT INTO %s (f_entity_kind,f_entity_id,f_key,f_value,f_create_time,f_update_time) VALUES (?,?,?,?,?,?)", tableName)
 
-		Convey("Replace Success\n", func() {
+		Convey("replaces extensions in a transaction successfully", func() {
 			smock.ExpectBegin()
 			smock.ExpectExec(deleteSQL).WithArgs("catalog-1", KindCatalog).WillReturnResult(sqlmock.NewResult(0, 1))
 			smock.ExpectExec(insertSQL).WithArgs(KindCatalog, "catalog-1", "env", "prod", sqlmock.AnyArg(), sqlmock.AnyArg()).
@@ -102,7 +106,7 @@ func Test_Store_Replace(t *testing.T) {
 			}
 		})
 
-		Convey("Replace delete error\n", func() {
+		Convey("rolls back when delete fails", func() {
 			expectedErr := errors.New("delete error")
 			smock.ExpectBegin()
 			smock.ExpectExec(deleteSQL).WithArgs("catalog-1", KindCatalog).WillReturnError(expectedErr)
@@ -116,7 +120,7 @@ func Test_Store_Replace(t *testing.T) {
 			}
 		})
 
-		Convey("Replace insert error\n", func() {
+		Convey("rolls back when insert fails", func() {
 			expectedErr := errors.New("insert error")
 			smock.ExpectBegin()
 			smock.ExpectExec(deleteSQL).WithArgs("catalog-1", KindCatalog).WillReturnResult(sqlmock.NewResult(0, 1))
@@ -134,12 +138,12 @@ func Test_Store_Replace(t *testing.T) {
 	})
 }
 
-func Test_Store_DeleteByEntityIDs(t *testing.T) {
-	Convey("test DeleteByEntityIDs\n", t, func() {
+func TestStore_DeleteByEntityIDs(t *testing.T) {
+	Convey("Test Store.DeleteByEntityIDs", t, func() {
 		store, smock := MockNewStore(t)
 		sqlStr := fmt.Sprintf("DELETE FROM %s WHERE f_entity_id IN (?,?) AND f_entity_kind = ?", tableName)
 
-		Convey("DeleteByEntityIDs Success\n", func() {
+		Convey("deletes successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs("catalog-1", "catalog-2", KindCatalog).WillReturnResult(sqlmock.NewResult(0, 2))
 
 			err := store.DeleteByEntityIDs(context.Background(), KindCatalog, []string{"catalog-1", "catalog-2"})
@@ -150,7 +154,7 @@ func Test_Store_DeleteByEntityIDs(t *testing.T) {
 			}
 		})
 
-		Convey("DeleteByEntityIDs empty ids\n", func() {
+		Convey("returns nil on empty ids without querying", func() {
 			err := store.DeleteByEntityIDs(context.Background(), KindCatalog, nil)
 			So(err, ShouldBeNil)
 
@@ -159,7 +163,7 @@ func Test_Store_DeleteByEntityIDs(t *testing.T) {
 			}
 		})
 
-		Convey("DeleteByEntityIDs failed\n", func() {
+		Convey("propagates db error", func() {
 			expectedErr := errors.New("delete error")
 			smock.ExpectExec(sqlStr).WithArgs("catalog-1", "catalog-2", KindCatalog).WillReturnError(expectedErr)
 
@@ -173,12 +177,12 @@ func Test_Store_DeleteByEntityIDs(t *testing.T) {
 	})
 }
 
-func Test_Store_GetByEntityID(t *testing.T) {
-	Convey("test GetByEntityID\n", t, func() {
+func TestStore_GetByEntityID(t *testing.T) {
+	Convey("Test Store.GetByEntityID", t, func() {
 		store, smock := MockNewStore(t)
 		sqlStr := fmt.Sprintf("SELECT f_key, f_value FROM %s WHERE f_entity_id = ? AND f_entity_kind = ? ORDER BY f_key", tableName)
 
-		Convey("GetByEntityID Success\n", func() {
+		Convey("returns key-value map on success", func() {
 			rows := sqlmock.NewRows([]string{"f_key", "f_value"}).
 				AddRow("env", "prod").
 				AddRow("team", "search")
@@ -193,7 +197,7 @@ func Test_Store_GetByEntityID(t *testing.T) {
 			}
 		})
 
-		Convey("GetByEntityID query failed\n", func() {
+		Convey("propagates query error", func() {
 			expectedErr := errors.New("query error")
 			smock.ExpectQuery(sqlStr).WithArgs("catalog-1", KindCatalog).WillReturnError(expectedErr)
 
@@ -208,12 +212,12 @@ func Test_Store_GetByEntityID(t *testing.T) {
 	})
 }
 
-func Test_Store_GetByEntityIDs(t *testing.T) {
-	Convey("test GetByEntityIDs\n", t, func() {
+func TestStore_GetByEntityIDs(t *testing.T) {
+	Convey("Test Store.GetByEntityIDs", t, func() {
 		store, smock := MockNewStore(t)
 		sqlStr := fmt.Sprintf("SELECT f_entity_id, f_key, f_value FROM %s WHERE f_entity_id IN (?,?) AND f_entity_kind = ? ORDER BY f_entity_id, f_key", tableName)
 
-		Convey("GetByEntityIDs Success\n", func() {
+		Convey("returns nested map keyed by entity id", func() {
 			rows := sqlmock.NewRows([]string{"f_entity_id", "f_key", "f_value"}).
 				AddRow("catalog-1", "env", "prod").
 				AddRow("catalog-1", "team", "search").
@@ -232,7 +236,7 @@ func Test_Store_GetByEntityIDs(t *testing.T) {
 			}
 		})
 
-		Convey("GetByEntityIDs empty ids\n", func() {
+		Convey("returns empty map on empty ids without querying", func() {
 			result, err := store.GetByEntityIDs(context.Background(), KindCatalog, nil)
 			So(err, ShouldBeNil)
 			So(result, ShouldResemble, map[string]map[string]string{})
@@ -242,7 +246,7 @@ func Test_Store_GetByEntityIDs(t *testing.T) {
 			}
 		})
 
-		Convey("GetByEntityIDs query failed\n", func() {
+		Convey("propagates query error", func() {
 			expectedErr := errors.New("query error")
 			smock.ExpectQuery(sqlStr).WithArgs("catalog-1", "catalog-2", KindCatalog).WillReturnError(expectedErr)
 

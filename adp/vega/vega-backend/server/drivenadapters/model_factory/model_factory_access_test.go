@@ -37,21 +37,19 @@ func TestNewModelFactoryAccess(t *testing.T) {
 			MfModelApiUrl:     "http://test-mf-api",
 		}
 
-		access1 := NewModelFactoryAccess(appSetting)
-		access2 := NewModelFactoryAccess(appSetting)
-
-		Convey("Should return singleton instance", func() {
+		Convey("returns singleton instance", func() {
+			access1 := NewModelFactoryAccess(appSetting)
+			access2 := NewModelFactoryAccess(appSetting)
 			So(access1, ShouldNotBeNil)
 			So(access2, ShouldEqual, access1)
 		})
 	})
 }
 
-func Test_modelFactoryAccess_GetModelByName(t *testing.T) {
-	Convey("Test GetModelByName", t, func() {
+func TestModelFactoryAccess_GetModelByName(t *testing.T) {
+	Convey("Test modelFactoryAccess.GetModelByName", t, func() {
 		ctx := context.Background()
 		mockCtrl := gomock.NewController(t)
-		defer mockCtrl.Finish()
 
 		appSetting := &common.AppSetting{
 			MfModelManagerUrl: "http://test-mf-manager",
@@ -59,11 +57,9 @@ func Test_modelFactoryAccess_GetModelByName(t *testing.T) {
 		}
 		mockHTTPClient := rmock.NewMockHTTPClient(mockCtrl)
 		mfa := newTestModelFactoryAccess(appSetting, mockHTTPClient)
-
 		modelName := "test-model"
-		// httpUrl := "http://test-mf-manager/small-model/get_by_name?model_name=test-model"
 
-		Convey("Success getting model by name", func() {
+		Convey("returns model on success", func() {
 			model := interfaces.SmallModel{
 				ModelID:   "model1",
 				ModelName: modelName,
@@ -80,7 +76,7 @@ func Test_modelFactoryAccess_GetModelByName(t *testing.T) {
 			So(result.ModelName, ShouldEqual, modelName)
 		})
 
-		Convey("Model not found", func() {
+		Convey("returns error when model not found", func() {
 			mockHTTPClient.EXPECT().
 				GetNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(http.StatusNotFound, []byte(""), nil)
@@ -90,7 +86,7 @@ func Test_modelFactoryAccess_GetModelByName(t *testing.T) {
 			So(result, ShouldBeNil)
 		})
 
-		Convey("HTTP request error", func() {
+		Convey("returns error when HTTP request fails", func() {
 			mockHTTPClient.EXPECT().
 				GetNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(0, []byte(""), errors.New("network error"))
@@ -100,7 +96,7 @@ func Test_modelFactoryAccess_GetModelByName(t *testing.T) {
 			So(result, ShouldBeNil)
 		})
 
-		Convey("HTTP status not OK and not NotFound", func() {
+		Convey("returns error when HTTP status is unexpected", func() {
 			mockHTTPClient.EXPECT().
 				GetNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(http.StatusInternalServerError, []byte("internal error"), nil)
@@ -110,7 +106,7 @@ func Test_modelFactoryAccess_GetModelByName(t *testing.T) {
 			So(result, ShouldBeNil)
 		})
 
-		Convey("Unmarshal response failed", func() {
+		Convey("returns error when response cannot be unmarshaled", func() {
 			mockHTTPClient.EXPECT().
 				GetNoUnmarshal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(http.StatusOK, []byte("invalid json"), nil)
@@ -122,11 +118,10 @@ func Test_modelFactoryAccess_GetModelByName(t *testing.T) {
 	})
 }
 
-func Test_modelFactoryAccess_GetVector(t *testing.T) {
-	Convey("Test GetVector", t, func() {
+func TestModelFactoryAccess_GetVector(t *testing.T) {
+	Convey("Test modelFactoryAccess.GetVector", t, func() {
 		ctx := context.Background()
 		mockCtrl := gomock.NewController(t)
-		defer mockCtrl.Finish()
 
 		appSetting := &common.AppSetting{
 			MfModelManagerUrl: "http://test-mf-manager",
@@ -141,9 +136,8 @@ func Test_modelFactoryAccess_GetVector(t *testing.T) {
 			MaxTokens: 100,
 		}
 		words := []string{"word1", "word2", "word3"}
-		// httpUrl := "http://test-mf-api/small-model/embeddings"
 
-		Convey("Success getting vectors", func() {
+		Convey("returns vectors on success", func() {
 			response := map[string]any{
 				"data": []*interfaces.VectorResp{
 					{Vector: []float32{0.1, 0.2}},
@@ -163,13 +157,13 @@ func Test_modelFactoryAccess_GetVector(t *testing.T) {
 			So(len(result), ShouldEqual, 3)
 		})
 
-		Convey("Empty model name", func() {
+		Convey("rejects empty model name", func() {
 			result, err := mfa.GetVector(ctx, "", words)
 			So(err, ShouldNotBeNil)
 			So(len(result), ShouldEqual, 0)
 		})
 
-		Convey("Empty words", func() {
+		Convey("returns empty result for empty words", func() {
 			result, err := mfa.GetVector(ctx, model.ModelID, []string{})
 			So(err, ShouldBeNil)
 			So(len(result), ShouldEqual, 0)

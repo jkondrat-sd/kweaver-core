@@ -20,8 +20,8 @@ import (
 	vmock "vega-backend/interfaces/mock"
 )
 
-func Test_ResourceRestHandler_ListResources(t *testing.T) {
-	Convey("Test ResourceHandler ListResources\n", t, func() {
+func TestResourceRestHandler_ListResources(t *testing.T) {
+	Convey("Test resourceRestHandler.ListResources", t, func() {
 		test := setGinMode()
 		defer test()
 
@@ -37,7 +37,7 @@ func Test_ResourceRestHandler_ListResources(t *testing.T) {
 
 		url := "/api/vega-backend/in/v1/resources"
 
-		Convey("Invalid category\n", func() {
+		Convey("Invalid category", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?category=unknown", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -47,7 +47,7 @@ func Test_ResourceRestHandler_ListResources(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "invalid category: unknown")
 		})
 
-		Convey("Invalid status\n", func() {
+		Convey("Invalid status", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?status=unknown", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -57,7 +57,7 @@ func Test_ResourceRestHandler_ListResources(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "invalid status: unknown")
 		})
 
-		Convey("Success list resources with name category and status\n", func() {
+		Convey("Success list resources with name category and status", func() {
 			rs.EXPECT().List(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, params interfaces.ResourcesQueryParams) ([]*interfaces.Resource, int64, error) {
 					So(params.Name, ShouldEqual, "orders")

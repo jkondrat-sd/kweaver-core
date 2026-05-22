@@ -93,7 +93,7 @@ func TestConnectorTypeColumns(t *testing.T) {
 
 func TestScanConnectorType(t *testing.T) {
 	Convey("Test scanConnectorType", t, func() {
-		Convey("Should scan connector type with field config", func() {
+		Convey("scans connector type with field config", func() {
 			scanner := fakeConnectorTypeScanner{values: []any{
 				"mysql",
 				"MySQL",
@@ -120,7 +120,7 @@ func TestScanConnectorType(t *testing.T) {
 			So(ct.Enabled, ShouldBeTrue)
 		})
 
-		Convey("Should scan connector type with empty field config", func() {
+		Convey("scans connector type with empty field config", func() {
 			scanner := fakeConnectorTypeScanner{values: []any{
 				"api",
 				"API",
@@ -140,7 +140,7 @@ func TestScanConnectorType(t *testing.T) {
 			So(ct.Enabled, ShouldBeFalse)
 		})
 
-		Convey("Should return scan error", func() {
+		Convey("propagates sql.ErrNoRows", func() {
 			scanner := fakeConnectorTypeScanner{err: sql.ErrNoRows}
 
 			ct, err := scanConnectorType(scanner)
@@ -148,7 +148,7 @@ func TestScanConnectorType(t *testing.T) {
 			So(ct, ShouldBeNil)
 		})
 
-		Convey("Should return error when field config JSON is invalid", func() {
+		Convey("returns error when field config JSON is invalid", func() {
 			scanner := fakeConnectorTypeScanner{values: []any{
 				"mysql",
 				"MySQL",
@@ -166,7 +166,7 @@ func TestScanConnectorType(t *testing.T) {
 			So(ct, ShouldBeNil)
 		})
 
-		Convey("Should propagate generic scan error", func() {
+		Convey("propagates generic scan error", func() {
 			expectedErr := errors.New("scan failed")
 			scanner := fakeConnectorTypeScanner{err: expectedErr}
 
@@ -177,13 +177,13 @@ func TestScanConnectorType(t *testing.T) {
 	})
 }
 
-func Test_ConnectorTypeAccess_Create(t *testing.T) {
-	Convey("test Create\n", t, func() {
+func TestConnectorTypeAccess_Create(t *testing.T) {
+	Convey("Test connectorTypeAccess.Create", t, func() {
 		cta, smock := MockNewConnectorTypeAccess(t)
 		ct := testConnectorType()
 		sqlStr := fmt.Sprintf("INSERT INTO %s (f_type,f_name,f_tags,f_description,f_mode,f_category,f_endpoint,f_field_config,f_enabled) VALUES (?,?,?,?,?,?,?,?,?)", CONNECTOR_TYPE_TABLE_NAME)
 
-		Convey("Create Success\n", func() {
+		Convey("creates connector type successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs(
 				ct.Type,
 				ct.Name,
@@ -204,7 +204,7 @@ func Test_ConnectorTypeAccess_Create(t *testing.T) {
 			}
 		})
 
-		Convey("Create Exec sql error\n", func() {
+		Convey("propagates exec error", func() {
 			expectedErr := errors.New("some error")
 			smock.ExpectExec(sqlStr).WithArgs(
 				ct.Type,
@@ -228,12 +228,12 @@ func Test_ConnectorTypeAccess_Create(t *testing.T) {
 	})
 }
 
-func Test_ConnectorTypeAccess_GetByType(t *testing.T) {
-	Convey("test GetByType\n", t, func() {
+func TestConnectorTypeAccess_GetByType(t *testing.T) {
+	Convey("Test connectorTypeAccess.GetByType", t, func() {
 		cta, smock := MockNewConnectorTypeAccess(t)
 		sqlStr := fmt.Sprintf("SELECT f_type, f_name, f_tags, f_description, f_mode, f_category, f_endpoint, f_field_config, f_enabled FROM %s WHERE f_type = ?", CONNECTOR_TYPE_TABLE_NAME)
 
-		Convey("GetByType Success\n", func() {
+		Convey("returns connector type on success", func() {
 			smock.ExpectQuery(sqlStr).WithArgs("mysql").WillReturnRows(mockConnectorTypeRows())
 
 			ct, err := cta.GetByType(context.Background(), "mysql")
@@ -246,7 +246,7 @@ func Test_ConnectorTypeAccess_GetByType(t *testing.T) {
 			}
 		})
 
-		Convey("GetByType Success no row\n", func() {
+		Convey("returns nil when no row", func() {
 			smock.ExpectQuery(sqlStr).WithArgs("missing").WillReturnError(sql.ErrNoRows)
 
 			ct, err := cta.GetByType(context.Background(), "missing")
@@ -258,7 +258,7 @@ func Test_ConnectorTypeAccess_GetByType(t *testing.T) {
 			}
 		})
 
-		Convey("GetByType Failed\n", func() {
+		Convey("propagates query error", func() {
 			expectedErr := errors.New("some error")
 			smock.ExpectQuery(sqlStr).WithArgs("mysql").WillReturnError(expectedErr)
 
@@ -273,13 +273,13 @@ func Test_ConnectorTypeAccess_GetByType(t *testing.T) {
 	})
 }
 
-func Test_ConnectorTypeAccess_Update(t *testing.T) {
-	Convey("test Update\n", t, func() {
+func TestConnectorTypeAccess_Update(t *testing.T) {
+	Convey("Test connectorTypeAccess.Update", t, func() {
 		cta, smock := MockNewConnectorTypeAccess(t)
 		ct := testConnectorType()
 		sqlStr := fmt.Sprintf("UPDATE %s SET f_name = ?, f_tags = ?, f_description = ?, f_mode = ?, f_category = ?, f_endpoint = ?, f_field_config = ?, f_enabled = ? WHERE f_type = ?", CONNECTOR_TYPE_TABLE_NAME)
 
-		Convey("Update Success\n", func() {
+		Convey("updates connector type successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs(
 				ct.Name,
 				`"database","source"`,
@@ -300,7 +300,7 @@ func Test_ConnectorTypeAccess_Update(t *testing.T) {
 			}
 		})
 
-		Convey("Update Exec sql error\n", func() {
+		Convey("propagates exec error", func() {
 			expectedErr := errors.New("some error")
 			smock.ExpectExec(sqlStr).WithArgs(
 				ct.Name,
@@ -324,12 +324,12 @@ func Test_ConnectorTypeAccess_Update(t *testing.T) {
 	})
 }
 
-func Test_ConnectorTypeAccess_DeleteByType(t *testing.T) {
-	Convey("test DeleteByType\n", t, func() {
+func TestConnectorTypeAccess_DeleteByType(t *testing.T) {
+	Convey("Test connectorTypeAccess.DeleteByType", t, func() {
 		cta, smock := MockNewConnectorTypeAccess(t)
 		sqlStr := fmt.Sprintf("DELETE FROM %s WHERE f_type = ?", CONNECTOR_TYPE_TABLE_NAME)
 
-		Convey("DeleteByType Success\n", func() {
+		Convey("deletes successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs("mysql").WillReturnResult(sqlmock.NewResult(0, 1))
 
 			err := cta.DeleteByType(context.Background(), "mysql")
@@ -340,7 +340,7 @@ func Test_ConnectorTypeAccess_DeleteByType(t *testing.T) {
 			}
 		})
 
-		Convey("DeleteByType Failed\n", func() {
+		Convey("propagates exec error", func() {
 			expectedErr := errors.New("some error")
 			smock.ExpectExec(sqlStr).WithArgs("mysql").WillReturnError(expectedErr)
 
@@ -354,12 +354,12 @@ func Test_ConnectorTypeAccess_DeleteByType(t *testing.T) {
 	})
 }
 
-func Test_ConnectorTypeAccess_SetEnabled(t *testing.T) {
-	Convey("test SetEnabled\n", t, func() {
+func TestConnectorTypeAccess_SetEnabled(t *testing.T) {
+	Convey("Test connectorTypeAccess.SetEnabled", t, func() {
 		cta, smock := MockNewConnectorTypeAccess(t)
 		sqlStr := fmt.Sprintf("UPDATE %s SET f_enabled = ? WHERE f_type = ?", CONNECTOR_TYPE_TABLE_NAME)
 
-		Convey("SetEnabled Success\n", func() {
+		Convey("updates enabled flag successfully", func() {
 			smock.ExpectExec(sqlStr).WithArgs(false, "mysql").WillReturnResult(sqlmock.NewResult(0, 1))
 
 			err := cta.SetEnabled(context.Background(), "mysql", false)
@@ -370,7 +370,7 @@ func Test_ConnectorTypeAccess_SetEnabled(t *testing.T) {
 			}
 		})
 
-		Convey("SetEnabled Failed\n", func() {
+		Convey("propagates exec error", func() {
 			expectedErr := errors.New("some error")
 			smock.ExpectExec(sqlStr).WithArgs(false, "mysql").WillReturnError(expectedErr)
 

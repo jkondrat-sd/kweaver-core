@@ -20,8 +20,8 @@ import (
 	vmock "vega-backend/interfaces/mock"
 )
 
-func Test_BuildTaskRestHandler_ListBuildTasks(t *testing.T) {
-	Convey("Test BuildTaskHandler ListBuildTasks\n", t, func() {
+func TestBuildTaskRestHandler_ListBuildTasks(t *testing.T) {
+	Convey("Test buildTaskRestHandler.ListBuildTasks", t, func() {
 		test := setGinMode()
 		defer test()
 
@@ -37,7 +37,7 @@ func Test_BuildTaskRestHandler_ListBuildTasks(t *testing.T) {
 
 		url := "/api/vega-backend/in/v1/build-tasks"
 
-		Convey("Invalid offset\n", func() {
+		Convey("Invalid offset", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?offset=-1", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -46,7 +46,7 @@ func Test_BuildTaskRestHandler_ListBuildTasks(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.InvalidParameter.Offset")
 		})
 
-		Convey("Invalid limit\n", func() {
+		Convey("Invalid limit", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?limit=99999999", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -55,7 +55,7 @@ func Test_BuildTaskRestHandler_ListBuildTasks(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.InvalidParameter.Limit")
 		})
 
-		Convey("Invalid sort field\n", func() {
+		Convey("Invalid sort field", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?sort=unknown_field", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -64,7 +64,7 @@ func Test_BuildTaskRestHandler_ListBuildTasks(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.InvalidParameter.Sort")
 		})
 
-		Convey("Invalid direction\n", func() {
+		Convey("Invalid direction", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?direction=foo", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -73,7 +73,7 @@ func Test_BuildTaskRestHandler_ListBuildTasks(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.InvalidParameter.Direction")
 		})
 
-		Convey("Invalid status\n", func() {
+		Convey("Invalid status", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?status=foo", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -82,7 +82,7 @@ func Test_BuildTaskRestHandler_ListBuildTasks(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.BuildTask.InvalidStatus")
 		})
 
-		Convey("Invalid mode\n", func() {
+		Convey("Invalid mode", func() {
 			req := httptest.NewRequest(http.MethodGet, url+"?mode=foo", nil)
 			w := httptest.NewRecorder()
 			engine.ServeHTTP(w, req)
@@ -91,7 +91,7 @@ func Test_BuildTaskRestHandler_ListBuildTasks(t *testing.T) {
 			So(w.Body.String(), ShouldContainSubstring, "VegaBackend.BuildTask.InvalidParameter.Mode")
 		})
 
-		Convey("Success with default pagination\n", func() {
+		Convey("Success with default pagination", func() {
 			bts.EXPECT().ListBuildTasks(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, params interfaces.BuildTasksQueryParams) ([]*interfaces.BuildTask, int64, error) {
 					So(params.Offset, ShouldEqual, 0)
@@ -108,7 +108,7 @@ func Test_BuildTaskRestHandler_ListBuildTasks(t *testing.T) {
 			So(w.Result().StatusCode, ShouldEqual, http.StatusOK)
 		})
 
-		Convey("Success with explicit query params\n", func() {
+		Convey("Success with explicit query params", func() {
 			bts.EXPECT().ListBuildTasks(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, params interfaces.BuildTasksQueryParams) ([]*interfaces.BuildTask, int64, error) {
 					So(params.ResourceID, ShouldEqual, "res-1")

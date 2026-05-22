@@ -19,169 +19,199 @@ import (
 	"vega-backend/logics/connectors"
 )
 
-func TestDatasetService_Create_Success(t *testing.T) {
-	Convey("Test DatasetService Create success", t, func() {
-		connector := &fakeIndexConnector{
-			createFunc: func(ctx context.Context, name string, schemaDefinition []*interfaces.Property) error {
+func TestDatasetService_Create(t *testing.T) {
+	Convey("Test datasetService.Create", t, func() {
+		connector := &fakeIndexConnector{}
+		svc := &datasetService{c: connector}
+
+		Convey("creates dataset with schema definition", func() {
+			connector.createFunc = func(ctx context.Context, name string, schemaDefinition []*interfaces.Property) error {
 				So(name, ShouldEqual, "resource-1")
 				So(schemaDefinition, ShouldHaveLength, 1)
 				return nil
-			},
-		}
-		svc := &datasetService{c: connector}
-		err := svc.Create(context.Background(), &interfaces.Resource{
-			ID:               "resource-1",
-			SchemaDefinition: []*interfaces.Property{{Name: "title"}},
+			}
+			err := svc.Create(context.Background(), &interfaces.Resource{
+				ID:               "resource-1",
+				SchemaDefinition: []*interfaces.Property{{Name: "title"}},
+			})
+			So(err, ShouldBeNil)
 		})
-		So(err, ShouldBeNil)
+
+		Convey("wraps connector error as HTTP 500", func() {
+			connector.createFunc = func(ctx context.Context, name string, schemaDefinition []*interfaces.Property) error {
+				return errors.New("create failed")
+			}
+			err := svc.Create(context.Background(), &interfaces.Resource{ID: "resource-1"})
+			assertDatasetHTTPError(err, http.StatusInternalServerError, verrors.VegaBackend_Resource_InternalError_CreateFailed)
+		})
 	})
 }
 
-func TestDatasetService_Create_Error(t *testing.T) {
-	Convey("Test DatasetService Create wraps connector error", t, func() {
-		connector := &fakeIndexConnector{createFunc: func(ctx context.Context, name string, schemaDefinition []*interfaces.Property) error {
-			return errors.New("create failed")
-		}}
+func TestDatasetService_Update(t *testing.T) {
+	Convey("Test datasetService.Update", t, func() {
+		connector := &fakeIndexConnector{}
 		svc := &datasetService{c: connector}
-		err := svc.Create(context.Background(), &interfaces.Resource{ID: "resource-1"})
-		assertDatasetHTTPError(err, http.StatusInternalServerError, verrors.VegaBackend_Resource_InternalError_CreateFailed)
+
+		Convey("composes index name from source identifier and resource id", func() {
+			connector.updateFunc = func(ctx context.Context, name string, schemaDefinition []*interfaces.Property) error {
+				So(name, ShouldEqual, "source-1-resource-1")
+				return nil
+			}
+			err := svc.Update(context.Background(), &interfaces.Resource{ID: "resource-1", SourceIdentifier: "source-1"})
+			So(err, ShouldBeNil)
+		})
 	})
 }
 
-func TestDatasetService_Update_UsesSourceIdentifierAndID(t *testing.T) {
-	Convey("Test DatasetService Update uses source identifier and id", t, func() {
-		connector := &fakeIndexConnector{updateFunc: func(ctx context.Context, name string, schemaDefinition []*interfaces.Property) error {
-			So(name, ShouldEqual, "source-1-resource-1")
-			return nil
-		}}
+func TestDatasetService_Delete(t *testing.T) {
+	Convey("Test datasetService.Delete", t, func() {
+		connector := &fakeIndexConnector{}
 		svc := &datasetService{c: connector}
-		err := svc.Update(context.Background(), &interfaces.Resource{ID: "resource-1", SourceIdentifier: "source-1"})
-		So(err, ShouldBeNil)
-	})
-}
 
-func TestDatasetService_Delete_SkipsMissingDataset(t *testing.T) {
-	Convey("Test DatasetService Delete skips missing dataset", t, func() {
-		connector := &fakeIndexConnector{checkExistFunc: func(ctx context.Context, name string) (bool, error) {
-			So(name, ShouldEqual, "resource-1")
-			return false, nil
-		}}
-		svc := &datasetService{c: connector}
-		err := svc.Delete(context.Background(), "resource-1")
-		So(err, ShouldBeNil)
-	})
-}
+		Convey("skips when dataset does not exist", func() {
+			connector.checkExistFunc = func(ctx context.Context, name string) (bool, error) {
+				So(name, ShouldEqual, "resource-1")
+				return false, nil
+			}
+			err := svc.Delete(context.Background(), "resource-1")
+			So(err, ShouldBeNil)
+		})
 
-func TestDatasetService_Delete_DeletesExistingDataset(t *testing.T) {
-	Convey("Test DatasetService Delete deletes existing dataset", t, func() {
-		connector := &fakeIndexConnector{
-			checkExistFunc: func(ctx context.Context, name string) (bool, error) {
+		Convey("deletes when dataset exists", func() {
+			connector.checkExistFunc = func(ctx context.Context, name string) (bool, error) {
 				return true, nil
-			},
-			deleteFunc: func(ctx context.Context, name string) error {
+			}
+			connector.deleteFunc = func(ctx context.Context, name string) error {
 				So(name, ShouldEqual, "resource-1")
 				return nil
-			},
-		}
-		svc := &datasetService{c: connector}
-		err := svc.Delete(context.Background(), "resource-1")
-		So(err, ShouldBeNil)
+			}
+			err := svc.Delete(context.Background(), "resource-1")
+			So(err, ShouldBeNil)
+		})
 	})
 }
 
-func TestDatasetService_CheckExist_Error(t *testing.T) {
-	Convey("Test DatasetService CheckExist wraps connector error", t, func() {
-		connector := &fakeIndexConnector{checkExistFunc: func(ctx context.Context, name string) (bool, error) {
-			return false, errors.New("check failed")
-		}}
+func TestDatasetService_CheckExist(t *testing.T) {
+	Convey("Test datasetService.CheckExist", t, func() {
+		connector := &fakeIndexConnector{}
 		svc := &datasetService{c: connector}
-		exists, err := svc.CheckExist(context.Background(), "resource-1")
-		So(exists, ShouldBeFalse)
-		assertDatasetHTTPError(err, http.StatusInternalServerError, verrors.VegaBackend_Resource_InternalError)
+
+		Convey("wraps connector error as HTTP 500", func() {
+			connector.checkExistFunc = func(ctx context.Context, name string) (bool, error) {
+				return false, errors.New("check failed")
+			}
+			exists, err := svc.CheckExist(context.Background(), "resource-1")
+			So(exists, ShouldBeFalse)
+			assertDatasetHTTPError(err, http.StatusInternalServerError, verrors.VegaBackend_Resource_InternalError)
+		})
 	})
 }
 
-func TestDatasetService_ListDocuments_Success(t *testing.T) {
-	Convey("Test DatasetService ListDocuments success", t, func() {
-		connector := &fakeIndexConnector{executeQueryFunc: func(ctx context.Context, indexName string, resource *interfaces.Resource, params *interfaces.ResourceDataQueryParams) (*interfaces.QueryResult, error) {
-			So(indexName, ShouldEqual, "index-1")
-			return &interfaces.QueryResult{
-				Rows:  []map[string]any{{"title": "hello"}},
-				Total: 1,
-			}, nil
-		}}
+func TestDatasetService_ListDocuments(t *testing.T) {
+	Convey("Test datasetService.ListDocuments", t, func() {
+		connector := &fakeIndexConnector{}
 		svc := &datasetService{c: connector}
-		rows, total, err := svc.ListDocuments(context.Background(), "index-1", &interfaces.Resource{}, &interfaces.ResourceDataQueryParams{})
-		So(err, ShouldBeNil)
-		So(total, ShouldEqual, 1)
-		So(rows, ShouldResemble, []map[string]any{{"title": "hello"}})
+
+		Convey("returns rows and total from connector query", func() {
+			connector.executeQueryFunc = func(ctx context.Context, indexName string, resource *interfaces.Resource, params *interfaces.ResourceDataQueryParams) (*interfaces.QueryResult, error) {
+				So(indexName, ShouldEqual, "index-1")
+				return &interfaces.QueryResult{
+					Rows:  []map[string]any{{"title": "hello"}},
+					Total: 1,
+				}, nil
+			}
+			rows, total, err := svc.ListDocuments(context.Background(), "index-1", &interfaces.Resource{}, &interfaces.ResourceDataQueryParams{})
+			So(err, ShouldBeNil)
+			So(total, ShouldEqual, 1)
+			So(rows, ShouldResemble, []map[string]any{{"title": "hello"}})
+		})
 	})
 }
 
-func TestDatasetService_CreateDocuments_Success(t *testing.T) {
-	Convey("Test DatasetService CreateDocuments success", t, func() {
-		connector := &fakeIndexConnector{createDocumentsFunc: func(ctx context.Context, name string, documents []map[string]any) ([]string, error) {
-			So(name, ShouldEqual, "resource-1")
-			So(documents, ShouldHaveLength, 1)
-			return []string{"doc-1"}, nil
-		}}
+func TestDatasetService_CreateDocuments(t *testing.T) {
+	Convey("Test datasetService.CreateDocuments", t, func() {
+		connector := &fakeIndexConnector{}
 		svc := &datasetService{c: connector}
-		docIDs, err := svc.CreateDocuments(context.Background(), "resource-1", []map[string]any{{"title": "hello"}})
-		So(err, ShouldBeNil)
-		So(docIDs, ShouldResemble, []string{"doc-1"})
+
+		Convey("returns ids from connector", func() {
+			connector.createDocumentsFunc = func(ctx context.Context, name string, documents []map[string]any) ([]string, error) {
+				So(name, ShouldEqual, "resource-1")
+				So(documents, ShouldHaveLength, 1)
+				return []string{"doc-1"}, nil
+			}
+			docIDs, err := svc.CreateDocuments(context.Background(), "resource-1", []map[string]any{{"title": "hello"}})
+			So(err, ShouldBeNil)
+			So(docIDs, ShouldResemble, []string{"doc-1"})
+		})
 	})
 }
 
-func TestDatasetService_GetDocument_Success(t *testing.T) {
-	Convey("Test DatasetService GetDocument success", t, func() {
-		connector := &fakeIndexConnector{getDocumentFunc: func(ctx context.Context, name string, docID string) (map[string]any, error) {
-			So(name, ShouldEqual, "resource-1")
-			So(docID, ShouldEqual, "doc-1")
-			return map[string]any{"title": "hello"}, nil
-		}}
+func TestDatasetService_GetDocument(t *testing.T) {
+	Convey("Test datasetService.GetDocument", t, func() {
+		connector := &fakeIndexConnector{}
 		svc := &datasetService{c: connector}
-		document, err := svc.GetDocument(context.Background(), "resource-1", "doc-1")
-		So(err, ShouldBeNil)
-		So(document, ShouldResemble, map[string]any{"title": "hello"})
+
+		Convey("returns document from connector", func() {
+			connector.getDocumentFunc = func(ctx context.Context, name string, docID string) (map[string]any, error) {
+				So(name, ShouldEqual, "resource-1")
+				So(docID, ShouldEqual, "doc-1")
+				return map[string]any{"title": "hello"}, nil
+			}
+			document, err := svc.GetDocument(context.Background(), "resource-1", "doc-1")
+			So(err, ShouldBeNil)
+			So(document, ShouldResemble, map[string]any{"title": "hello"})
+		})
 	})
 }
 
-func TestDatasetService_DeleteDocument_Success(t *testing.T) {
-	Convey("Test DatasetService DeleteDocument success", t, func() {
-		connector := &fakeIndexConnector{deleteDocumentFunc: func(ctx context.Context, name string, docID string) error {
-			So(name, ShouldEqual, "resource-1")
-			So(docID, ShouldEqual, "doc-1")
-			return nil
-		}}
+func TestDatasetService_DeleteDocument(t *testing.T) {
+	Convey("Test datasetService.DeleteDocument", t, func() {
+		connector := &fakeIndexConnector{}
 		svc := &datasetService{c: connector}
-		err := svc.DeleteDocument(context.Background(), "resource-1", "doc-1")
-		So(err, ShouldBeNil)
+
+		Convey("delegates to connector with name and docID", func() {
+			connector.deleteDocumentFunc = func(ctx context.Context, name string, docID string) error {
+				So(name, ShouldEqual, "resource-1")
+				So(docID, ShouldEqual, "doc-1")
+				return nil
+			}
+			err := svc.DeleteDocument(context.Background(), "resource-1", "doc-1")
+			So(err, ShouldBeNil)
+		})
 	})
 }
 
-func TestDatasetService_UpsertDocuments_ReturnsConnectorErrorAsIs(t *testing.T) {
-	Convey("Test DatasetService UpsertDocuments returns connector error as is", t, func() {
-		expectedErr := errors.New("upsert failed")
-		connector := &fakeIndexConnector{upsertDocumentsFunc: func(ctx context.Context, name string, updateRequests []map[string]any) ([]string, error) {
-			return []string{"doc-1"}, expectedErr
-		}}
+func TestDatasetService_UpsertDocuments(t *testing.T) {
+	Convey("Test datasetService.UpsertDocuments", t, func() {
+		connector := &fakeIndexConnector{}
 		svc := &datasetService{c: connector}
-		docIDs, err := svc.UpsertDocuments(context.Background(), "resource-1", []map[string]any{{"id": "doc-1"}})
-		So(err, ShouldEqual, expectedErr)
-		So(docIDs, ShouldResemble, []string{"doc-1"})
+
+		Convey("returns connector error as-is without wrapping", func() {
+			expectedErr := errors.New("upsert failed")
+			connector.upsertDocumentsFunc = func(ctx context.Context, name string, updateRequests []map[string]any) ([]string, error) {
+				return []string{"doc-1"}, expectedErr
+			}
+			docIDs, err := svc.UpsertDocuments(context.Background(), "resource-1", []map[string]any{{"id": "doc-1"}})
+			So(err, ShouldEqual, expectedErr)
+			So(docIDs, ShouldResemble, []string{"doc-1"})
+		})
 	})
 }
 
-func TestDatasetService_DeleteDocuments_Success(t *testing.T) {
-	Convey("Test DatasetService DeleteDocuments success", t, func() {
-		connector := &fakeIndexConnector{deleteDocumentsFunc: func(ctx context.Context, name string, docIDs string) error {
-			So(name, ShouldEqual, "resource-1")
-			So(docIDs, ShouldEqual, "doc-1,doc-2")
-			return nil
-		}}
+func TestDatasetService_DeleteDocuments(t *testing.T) {
+	Convey("Test datasetService.DeleteDocuments", t, func() {
+		connector := &fakeIndexConnector{}
 		svc := &datasetService{c: connector}
-		err := svc.DeleteDocuments(context.Background(), "resource-1", "doc-1,doc-2")
-		So(err, ShouldBeNil)
+
+		Convey("delegates with name and comma-joined docIDs", func() {
+			connector.deleteDocumentsFunc = func(ctx context.Context, name string, docIDs string) error {
+				So(name, ShouldEqual, "resource-1")
+				So(docIDs, ShouldEqual, "doc-1,doc-2")
+				return nil
+			}
+			err := svc.DeleteDocuments(context.Background(), "resource-1", "doc-1,doc-2")
+			So(err, ShouldBeNil)
+		})
 	})
 }
 

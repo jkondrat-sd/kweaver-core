@@ -12,13 +12,13 @@ import (
 
 func TestResourceExtensionHelpers(t *testing.T) {
 	Convey("Test resource extension helpers", t, func() {
-		Convey("Should prefix column when extension filters exist", func() {
+		Convey("prefixes column when extension filters exist", func() {
 			params := interfaces.ResourcesQueryParams{ExtensionKeys: []string{"env"}}
 			So(resourceExtCol(params, "f_update_time"), ShouldEqual, "t_resource.f_update_time")
 			So(resourceListOrderExpr(params), ShouldEqual, "t_resource.f_update_time ")
 		})
 
-		Convey("Should keep column unprefixed without extension filters", func() {
+		Convey("keeps column unprefixed without extension filters", func() {
 			params := interfaces.ResourcesQueryParams{PaginationQueryParams: interfaces.PaginationQueryParams{
 				Sort:      "f_name",
 				Direction: "DESC",
@@ -27,7 +27,7 @@ func TestResourceExtensionHelpers(t *testing.T) {
 			So(resourceListOrderExpr(params), ShouldEqual, "f_name DESC")
 		})
 
-		Convey("Should apply extension joins", func() {
+		Convey("applies extension joins", func() {
 			params := interfaces.ResourcesQueryParams{
 				ExtensionKeys:   []string{"env"},
 				ExtensionValues: []string{"prod"},
