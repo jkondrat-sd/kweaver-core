@@ -47,9 +47,32 @@ lib `kweaver-go-lib/hydra.Introspect` 打 ORY 标准 `POST {hydraAdmin}/admin/oa
 | `/resource_type/` | — | 资源类型登记（少量） | — | 静态 |
 
 **DoD**：
-- [ ] 抓现 ISF 对这 7 端点的真实 req/resp 报文，存为 golden。
+- [x] 抓现 ISF 对 operation-check / resource-operation 的真实 req/resp（见 §2.1，环境 dip-poc.aishu.cn，`kweaver call` 注入 token）。
+- [ ] policy / policy-delete（写）golden —— 避免在 POC 写脏数据，待隔离环境或从 isf/Authorization 源码补。
+- [ ] resource-filter / resource-list —— dip-poc 此版**未暴露（404）**，待在有这两端点的部署抓，或从源码补。
 - [ ] `policy-delete`（exec-factory）与 `DELETE /policy/`（Pattern A）**双形态都实现**。
 - [ ] Casbin model（见 §4）对每端点行为等价，golden 比对一致。
+
+### 2.1 实测 golden（2026-05-25，dip-poc.aishu.cn，user f6ae435c）
+
+**通用**：请求头自动注入 `Authorization: Bearer <token>` + `token` + `x-business-domain: bd_public`。
+
+**operation-check**（POST `/api/authorization/v1/operation-check`）
+```
+req:  {"accessor":{"type":"user","id":"<uid>"},"resource":{"type":"agent","id":"probe"},"operation":["use"],"method":"GET"}
+resp: 200 {"result": true}
+err:  缺 method → 400 {"code":"Public.BadRequest","description":"(root): method is required"}
+err:  调用方角色不符 → 403 {"code":"Public.Forbidden","description":"Unsupported user role type"}
+```
+
+**resource-operation**（POST `/api/authorization/v1/resource-operation`）
+```
+req:  {"accessor":{"type":"user","id":"<uid>"},"resources":[{"type":"agent","id":"probe"}],"operation":["use"],"allow_operation":true,"method":"GET"}
+resp: 200 [{"id":"probe","operation":["mgnt_built_in_agent","use"]}]
+```
+⚠️ **响应是 JSON 数组 `[{id, operation:[...]}]`，不是 map** —— lib 侧 `GetResourcesOperations`/`FilterResources` 返回 `map[string]...`，故客户端做 array→map（按 id 键）转换。**新服务必须返回数组形态。**
+
+> `method` 是必填字段（值为被代理的真实 HTTP 方法，如 GET），所有 authz 端点都要带。
 
 ---
 
