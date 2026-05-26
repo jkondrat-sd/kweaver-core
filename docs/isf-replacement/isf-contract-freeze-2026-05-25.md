@@ -34,17 +34,38 @@ lib `kweaver-go-lib/hydra.Introspect` 打 ORY 标准 `POST {hydraAdmin}/admin/oa
 
 ## 2. authorization 契约（`/api/authorization/v1/*`）
 
-实际只用 RBAC 子集（Deny/Condition/ExpiresAt/obligation 全空，见落地设计 §4）。
+实际只用 RBAC 子集（Deny/Condition/ExpiresAt/obligation 全空，见落地设计 §4）。下表请求结构源自 isf Authorization 自带的 **JSON Schema 校验文件**（`driveradapters/jsonschema/policy_calc/*.json`、`.../policy/*.json`），权威。
 
-| 端点 | 方法 | 请求（实测字段） | 响应 | Casbin 实现 |
+### 2.0 路由内外网分组（决定 public ingress 可见性）
+
+isf Authorization 注册两组（`driveradapters/policy_calc_rest_handler.go:83-97`、`policy_rest_handler.go:87-97`）：
+
+| 路由 | 内网组 | public 组（ingress 暴露） |
+|---|---|---|
+| operation-check | ✅ check | ✅ checkPublic |
+| resource-operation | ✅ | ✅ public |
+| resource-type-operation | — | ✅ public |
+| **resource-list / resource-filter** | ✅ **仅内网** | ❌ |
+| policy（create/get/set/delete）| createPrivate / deletePrivate | create / get / set / delete / resource-policy |
+
+> ⚠️ resource-filter/resource-list **只在内网路由** → 公网打 404（之前 dip-poc 404 真因，非版本旧）。
+
+### 2.1 端点契约表
+
+| 端点 | 方法 | 请求（JSON Schema 权威，required 加粗） | 响应 | Casbin |
 |---|---|---|---|---|
-| `/operation-check` | POST | `{accessor:{type,id}, resource:{type,id}, operation:[...], method}` | `{result: bool}` | `Enforce(id, "type:id", op)` |
-| `/policy` | POST | `[{accessor, resource, operation:{allow:[{id}],deny:[]}, condition:"", expires_at:""}]` | 2xx | `AddPolicy` / `AddGroupingPolicy` |
-| `/policy/`（DELETE，Pattern A） + `/policy-delete`（POST，exec-factory）| 两形态 | `[{resource:{type,id}}]` | 2xx | `RemoveFilteredPolicy` |
-| `/resource-filter` | POST | `{accessor, resources:[...], operation:[...], allow_operation:bool}` | `{<id>: {id, operation:[...]}}` | 遍历 + `Enforce` |
-| `/resource-operation` | POST | 同上 | 同上 | `GetImplicitPermissionsForUser` |
-| `/resource-list` | POST | `{accessor, ...}` | 资源列表 | 列 user 可访问 obj |
-| `/resource_type/` | — | 资源类型登记（少量） | — | 静态 |
+| `/operation-check` | POST | **accessor**{**id**,**type**∈user/app}, **resource**{**id**,**type**,name?}, **operation**[str], **method** | `{result:bool}`（实测）| `Enforce(id,"type:id",op)` |
+| `/resource-operation` | POST | **accessor**, **resources**[{id,type}], **operation**[], **method**(+allow_operation) | `[{id,operation:[...]}]`（实测,**数组**）| 遍历 ops |
+| `/resource-filter` | POST(内网) | **accessor**, **resources**[], **operation**[], **method** | 同构数组（未实测）| 过滤+`Enforce` |
+| `/resource-list` | POST(内网) | **accessor**, **resource**, **operation**, **method**, include | 资源列表 | 列可访问 obj |
+| `/policy` | POST | **数组**[{**accessor**{**id**,**type**∈**user/department/group/role/app**}, **resource**{**id**,**name**,**type**}, **operation**{**allow**:[{id}],**deny**:[]}}] | 2xx | `AddPolicy`/`AddGroupingPolicy` |
+| `/policy-delete`（内网）| POST | **method**, **resources**[] | 2xx | `RemoveFilteredPolicy` |
+| `DELETE /policy/:ids` / `PUT /policy/:ids` / `GET /policy` / `GET /resource-policy` | — | 按 id 增删改查 | — | 同上 |
+
+**关键**：
+- `accessor.type` 枚举 = **user / department / group / role / app** —— 策略可直接绑**角色/部门/组**（DA 给 app_admin 授权即 `type=role`）。→ Casbin 需多段 `g` 表达 user→role、user→dept、user→group 归属。
+- `method` 字段所有 policy_calc 端点**必填**（值=被代理真实 HTTP 方法）。
+- `operation`（create policy）= `{allow:[{id}], deny:[]}`，二者 required；kweaver 实测 deny 恒空。
 
 **DoD**：
 - [x] 抓现 ISF 对 operation-check / resource-operation 的真实 req/resp（见 §2.1，环境 dip-poc.aishu.cn，`kweaver call` 注入 token）。
