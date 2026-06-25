@@ -1151,10 +1151,10 @@ KAFKA_CHART_TGZ="${KAFKA_CHART_TGZ:-${SCRIPT_DIR}/charts/kafka-${KAFKA_CHART_VER
 #   UnsupportedVersionException: Received request for api with key 11 (JoinGroup) and unsupported version 1
 # Default to a Kafka 3.x image for broader client compatibility; you can override via KAFKA_IMAGE/KAFKA_IMAGE_TAG.
 # Use an SWR mirror by default to improve pull reliability in restricted networks.
-KAFKA_IMAGE="${KAFKA_IMAGE:-swr.cn-east-3.myhuaweicloud.com/kweaver-ai/bitnami/kafka:3.9.0-debian-12-r10}"
+KAFKA_IMAGE="${KAFKA_IMAGE:-soldevelo/kafka:3.9.2-debian-12-r0}"
 KAFKA_IMAGE_REPOSITORY="${KAFKA_IMAGE_REPOSITORY:-bitnami/kafka}"
 KAFKA_IMAGE_TAG="${KAFKA_IMAGE_TAG:-3.9.0-debian-12-r10}"
-KAFKA_IMAGE_FALLBACK="${KAFKA_IMAGE_FALLBACK:-swr.cn-east-3.myhuaweicloud.com/kweaver-ai/bitnami/kafka:3.9.0-debian-12-r10}"
+KAFKA_IMAGE_FALLBACK="${KAFKA_IMAGE_FALLBACK:-soldevelo/kafka:3.9.2-debian-12-r0}"
 KAFKA_HELM_TIMEOUT="${KAFKA_HELM_TIMEOUT:-1800s}"
 # NOTE: --atomic will auto-uninstall on failure, which makes debugging hard. Default to false.
 KAFKA_HELM_ATOMIC="${KAFKA_HELM_ATOMIC:-false}"
